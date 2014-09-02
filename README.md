@@ -1,4 +1,5 @@
-phd-artifacts
+phd artifacts
 =============
 
 Research artifacts for phd
+
