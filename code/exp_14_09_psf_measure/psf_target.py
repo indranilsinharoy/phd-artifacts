@@ -52,7 +52,7 @@ pt_src_off = 20       # pixel offsets between point sources
 petal_length = 10       # number of pixels in the 4 arms/petals around the central
 
 # Target base
-src = np.zeros((row_px, col_px), dtype=np.int8)
+src = np.zeros((row_px, col_px), dtype=np.float)
 
 # point sources
 def draw_pt_src(row_px, col_px, pt_src_num_px, row_off, col_off):
@@ -66,16 +66,58 @@ def draw_pt_src(row_px, col_px, pt_src_num_px, row_off, col_off):
         print("Pt src row: ", pt_src_row_beg, pt_src_row_end)
         print("Pt src col: ", pt_src_col_beg, pt_src_col_end)
 
+def show_plus_icon(grid, row_tl, col_tl, side=20, thick=4):
+    grid[row_tl:row_tl+side, col_tl+side/2-thick/2:col_tl+side/2+thick/2] = 0.35
+    grid[row_tl+side/2-thick/2:row_tl+side/2+thick/2, col_tl:col_tl+side] = 0.35
+    #print(row_tl, row_tl+side, col_tl+side/2-thick/2, col_tl+side/2+thick/2)
+
+def show_minus_icon(grid, row_tl, col_tl, side=20, thick=4):
+    grid[row_tl:row_tl+side, col_tl+side/2-thick/2:col_tl+side/2+thick/2] = 0.35
+
+def show_square_icon(grid, row_tl, col_tl, side=20, thick=4):
+    grid[row_tl+side/2-thick/2:row_tl+side/2+thick/2,
+         col_tl+side/2-thick/2:col_tl+side/2+thick/2] = 0.35
+
+def draw_icon(display_img):
+    """ The shifts are represented in X-Y
+    Zero shift   : o o
+    Top shift    : o +
+    Right shift  : + o
+    Bottom shift : o -
+    Left shift   : - o
+    """
+    screenOff_row, screenOff_col, side, thick, gap = 50, 50, 20, 4, 5
+    if display_img == 0:
+        show_square_icon(src, screenOff_row, col_px - screenOff_col - 2*side - gap, side, thick)
+        show_square_icon(src, screenOff_row, col_px - screenOff_col - side, side, thick)
+    elif display_img == 1:
+        show_square_icon(src, screenOff_row, col_px - screenOff_col - 2*side - gap, side, thick)
+        show_plus_icon(src, screenOff_row, col_px - screenOff_col - side, side, thick)
+    elif display_img == 2:
+        show_plus_icon(src, screenOff_row, col_px - screenOff_col - 2*side - gap, side, thick)
+        show_square_icon(src, screenOff_row, col_px - screenOff_col - side, side, thick)
+    elif display_img == 3:
+        show_square_icon(src, screenOff_row, col_px - screenOff_col - 2*side - gap, side, thick)
+        show_minus_icon(src, screenOff_row, col_px - screenOff_col - side, side, thick)
+    elif display_img == 4:
+        show_minus_icon(src, screenOff_row, col_px - screenOff_col - 2*side - gap, side, thick)
+        show_square_icon(src, screenOff_row, col_px - screenOff_col - side, side, thick)
+
 if display_img==4:
     row_shift, col_shift = 0, -shift_dots_pix
+    draw_icon(4)
 elif display_img==3:
     row_shift, col_shift = shift_dots_pix, 0
+    draw_icon(3)
 elif display_img==2:
     row_shift, col_shift = 0, shift_dots_pix
+    draw_icon(2)
 elif display_img==1:
     row_shift, col_shift = -shift_dots_pix, 0
+    draw_icon(1)
 else:
     row_shift, col_shift = 0, 0
+    draw_icon(0)
 
 draw_pt_src(row_px, col_px, pt_src_num_px, row_off=row_shift, col_off=col_shift) # central point
 for i in range(1, petal_length+1):
@@ -87,6 +129,7 @@ for i in range(1, petal_length+1):
                 row_off=row_shift, col_off=-pt_src_off*i + col_shift)
     draw_pt_src(row_px, col_px, pt_src_num_px,
                 row_off=row_shift, col_off=pt_src_off*i + col_shift)
+
 
 if DRAW_LINES:
     # rows
@@ -101,10 +144,10 @@ if DRAW_LINES:
     line_col_right_end = line_col_right_beg + lines_num_px
 
     # set to one
-    src[line_row_up_beg:line_row_up_end, :] = 1
-    src[line_row_down_beg:line_row_down_end, :] = 1
-    src[:, line_col_left_beg:line_col_left_end] = 1
-    src[:, line_col_right_beg:line_col_right_end] = 1
+    src[line_row_up_beg:line_row_up_end, :] = 0.4
+    src[line_row_down_beg:line_row_down_end, :] = 0.4
+    src[:, line_col_left_beg:line_col_left_end] = 0.4
+    src[:, line_col_right_beg:line_col_right_end] = 0.4
 
 
 def create_blank_slate(figsize, dpi):
@@ -145,11 +188,13 @@ def show_slate(fig):
     Tk.mainloop()
 
 
+
+
 # plot
 dpi = int(ppi)
 figsize = (col_px/dpi, row_px/dpi)  # width, height
 fig, ax = create_blank_slate(figsize, dpi)
-ax.imshow(src, 'gray', interpolation='none')
+ax.imshow(src, 'gray', interpolation='none', origin='lower')
 show_slate(fig)
 
 if DEBUG_PRINTING_ON:
