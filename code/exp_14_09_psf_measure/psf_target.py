@@ -149,6 +149,23 @@ if DRAW_LINES:
     src[:, line_col_left_beg:line_col_left_end] = 0.4
     src[:, line_col_right_beg:line_col_right_end] = 0.4
 
+def project_dark_frame():
+    pass
+
+def project_point_src():
+    pass
+
+def handle_pattern_projection(key):
+    """function to handle the projection of patterns
+    """
+    if key=='start':
+        print("Dark frame")
+        project_dark_frame()
+    elif key=='right':
+        print("Next pattern")
+        project_point_src()
+
+
 
 def create_blank_slate(figsize, dpi):
     global root
@@ -174,8 +191,8 @@ def press(event):
         root.quit()
         root.destroy()
     else:
-        print("I should be running")
-        pass
+        handle_pattern_projection(event.key)
+
 
 def show_slate(fig):
     global root
