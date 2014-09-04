@@ -31,8 +31,8 @@ root = None   # TODO!!! embed into a "figure" class
 DEBUG_PRINTING_ON = False
 
 # Changes based on monitor
-col_px, row_px = diu.getPrimaryScreenResolution()
-ppi = eiu.get_ppi(device='vaioVPCF1')  # 'surface_pro3'
+col_px, row_px = 648, 480   #diu.getPrimaryScreenResolution()
+ppi = eiu.get_ppi(device='surface_pro3')  # 'surface_pro3' 'vaioVPCF1'
 
 # Target control parameters
 # The following 3 paramaeters are set based on the display monitor
@@ -49,7 +49,7 @@ lines_num_px = 1
 line_gap_num_px = 20  # even
 pt_src_num_px = 1     # odd only (1, 3, 5, etc)
 pt_src_off = 20       # pixel offsets between point sources
-petal_length = 10       # number of pixels in the 4 arms/petals around the central
+petal_length = 3       # number of pixels in the 4 arms/petals around the central
 
 # Target base
 src = np.zeros((row_px, col_px), dtype=np.float)
@@ -168,10 +168,14 @@ def create_blank_slate(figsize, dpi):
 # Add the callback function
 def press(event):
     global root
-    #print('key pressed: ', event.key) # for debugging
-    if event.key == 'alt+escape' or 'escape':   # In windows, x is gets registered as 'alt+x'
+    print('key pressed: ', event.key) # for debugging
+    if event.key == 'escape':
+        print("Quit and destroy frame")
         root.quit()
         root.destroy()
+    else:
+        print("I should be running")
+        pass
 
 def show_slate(fig):
     global root
