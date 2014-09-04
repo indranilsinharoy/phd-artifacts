@@ -12,6 +12,12 @@ Created on Mon Sep 01 11:52:53 2014
 
 @author: Indranil
 """
+
+# TODO !!!
+# 1. change into functions
+# 2. first frame is in all colors .... lines and dots (for focusing aid)
+# 3. subsequent frames shall be in 1 color ....
+
 from __future__ import division, print_function
 import numpy as np
 import iutils.exputils.imaging as eiu
@@ -66,6 +72,7 @@ def draw_pt_src(row_px, col_px, pt_src_num_px, row_off, col_off):
         print("Pt src row: ", pt_src_row_beg, pt_src_row_end)
         print("Pt src col: ", pt_src_col_beg, pt_src_col_end)
 
+# Functions for drawing icons
 def show_plus_icon(grid, row_tl, col_tl, side=20, thick=4):
     grid[row_tl:row_tl+side, col_tl+side/2-thick/2:col_tl+side/2+thick/2] = 0.35
     grid[row_tl+side/2-thick/2:row_tl+side/2+thick/2, col_tl:col_tl+side] = 0.35
@@ -149,21 +156,35 @@ if DRAW_LINES:
     src[:, line_col_left_beg:line_col_left_end] = 0.4
     src[:, line_col_right_beg:line_col_right_end] = 0.4
 
-def project_dark_frame():
-    pass
 
-def project_point_src():
-    pass
+
+def project_dark_frame():
+    print("Dark frame")
+
+def project_start_frame():
+    print("Start frame")
+
+def project_point_src(pattern='centered'):
+    print("Point src pattern = {} ".format(pattern))
+
+patterns = ['centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left']
+pattern_counter = 0  # TODO !!! do this more elegently
 
 def handle_pattern_projection(key):
     """function to handle the projection of patterns
     """
+    global patterns
+    global pattern_counter
+    num_patterns = len(patterns)
+
     if key=='start':
-        print("Dark frame")
-        project_dark_frame()
+        project_start_frame()
     elif key=='right':
-        print("Next pattern")
-        project_point_src()
+        if pattern_counter < num_patterns:
+            project_point_src(patterns[pattern_counter])
+        else:
+            project_dark_frame()
+        pattern_counter += 1
 
 
 
