@@ -180,12 +180,12 @@ pt_src_num_px = 1     # odd only (1, 3, 5, etc)
 pt_src_off = 20       # pixel offsets between point sources
 petal_length = 3       # number of pixels in the 4 arms/petals around the central
 
-shift_dots_pix = 5  # shift dots by 'shift_dots_pix' pixels for subsequent images
+shift_dots_pix = 1  # shift dots by 'shift_dots_pix' pixels for subsequent images
 DRAW_LINES = True
 
 col_of_pt_src = (0, 1, 0)   # color/ waelength of the dots
 
-patterns = ['centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left', 'dark_frame']
+patterns = ['dark_frame', 'centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left', ]
 pattern_counter = 0  # TODO !!! do this more elegently
 
 
