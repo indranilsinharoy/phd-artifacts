@@ -53,6 +53,7 @@ class pattern_plotter(object):
         if event.key == 'escape':
             #print("Quit and destroy frame")
             self.destroy_frame()
+            exit()
         else:
             #print("Calling function {}()".format(self._func.__name__)) # for debugging
             self.destroy_frame()
@@ -229,7 +230,7 @@ def get_pattern(pattern, row_px, col_px):
                         val=col_of_pt_src)
         if DRAW_LINES:
             draw_guide_lines(src, row_px, col_px, line_gap_num_px, lines_num_px,
-                             val=(0.3, 0.3, 0.3))
+                             val=(0.0, 0.3, 0.0))
         return src
 
 #
