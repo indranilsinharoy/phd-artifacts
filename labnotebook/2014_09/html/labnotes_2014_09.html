@@ -1,0 +1,89 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>Lab notes, September 2014</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="css/labnotes.css" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">Lab notes, September 2014</h1>
+</div>
+<h1 id="date-09-03-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-03-2014; Experiment: PSF measurement on tilted plane</h1>
+<h2 id="goal">Goal</h2>
+<p>Measure PSF on a tilted image plane and compare with rigid camera PSFs for 3 points close to the optical axis (satisfying paraxial conditions)</p>
+<h3 id="back-of-the-envelope-calculations">Back of the envelope calculations</h3>
+<pre class="sourceCode code python"><code>&gt;&gt;&gt; import iutils.exputils.imaging as eiu
+&gt;&gt;&gt; m = eiu.mag(180, u=3900)              
+&gt;&gt;&gt; m                                     # magnification (u = 3.9 m)
+0.04838709677419355           
+&gt;&gt;&gt; sensor_px = 6.0                        # micron
+&gt;&gt;&gt; sensor_px_obj_space = sensor_px/m
+&gt;&gt;&gt; sensor_px_obj_space                    # sensor pixel in object space
+124.0
+&gt;&gt;&gt; ppi = eiu.get_ppi(&#39;surface_pro3&#39;)
+&gt;&gt;&gt; ppi
+216
+&gt;&gt;&gt; display_px_obj_space = eiu.ppi2microns(ppi) # size of a display pixel
+&gt;&gt;&gt; display_px_obj_space
+117.5925925925926 </code></pre>
+<h3 id="experimental-setup">Experimental setup</h3>
+<div class="figure">
+<img src="images/expt_psfmeasure_basic_setup_hand_schematic.png" alt="Fig: Schematic of experimental setup" /><p class="caption"><em>Fig: Schematic of experimental setup</em></p>
+</div>
+<h4 id="target">Target</h4>
+<p>The target of point sources were generated using the code <code>\code\exp_14_09_psf_measure.py</code> and renderend on a Surface Pro 3 tablet (pixel size of 117.6 um). Each point source are essentially a spatial mixture of RGB values as shown in the image below:</p>
+<div class="figure">
+<img src="images/expt_psfmeasure_tgt_9_3_centered.png" alt="Fig: Point source target image (full size)" /><p class="caption"><em>Fig: Point source target image (full size)</em></p>
+</div>
+<div class="figure">
+<img src="images/expt_psfmeasure_tgt_9_3_centered_cropped.png" alt="Fig: Zoomed-in central portion of the point source target image" /><p class="caption"><em>Fig: Zoomed-in central portion of the point source target image</em></p>
+</div>
+<p><em>Object distance</em></p>
+<p>u = around 3.9 meters</p>
+<p><em>Exposure settings for Sinar camera:</em></p>
+<p>Both images were exposed using 4-shot capture. Hence, i.e. the pixel size is natively 6 um.</p>
+<p><em>Image: PSF_Measurement_9_3_1</em></p>
+<div class="figure">
+<img src="images/expt_psfmeasurement_9_3_1_centerCropped.png" alt="Fig: Image of the central portion of the points sources. Sinar camera settings: ISO: 50; Time: 1 sec; Aperture: f/8" /><p class="caption"><em>Fig: Image of the central portion of the points sources. Sinar camera settings: ISO: 50; Time: 1 sec; Aperture: f/8</em></p>
+</div>
+<p><em>Image: PSF_Measurement_9_3_2</em></p>
+<div class="figure">
+<img src="images/expt_psfmeasurement_9_3_2_centerCropped.png" alt="Fig: Image of the central portion of the points sources. Sinar camera settings: ISO: 100; Time: 4 sec; Aperture: f/32" /><p class="caption"><em>Fig: Image of the central portion of the points sources. Sinar camera settings: ISO: 100; Time: 4 sec; Aperture: f/32</em></p>
+</div>
+<p>Note that the “aperture” value is the aperture set in the lens standard, and it doesn’t account for the image distance, i.e. it is not the relative aperture.</p>
+<h3 id="comments">Comments</h3>
+<ol style="list-style-type: decimal">
+<li>It is very evident from the above images, that the camera was not properly focused on the target. The blur is very clear in “PSF_Measurement_9_3_1”. In “PSF_Measurement_9_3_2”, the blur spot is smaller because of the use of smaller (f/32) aperture. Clearly, geometric effects are more evident than diffraction effects.</li>
+<li>The images are also very noisy (lack of enough light)</li>
+</ol>
+<h3 id="rectification-strategy">Rectification strategy</h3>
+<ol style="list-style-type: decimal">
+<li>We must come up with a better way to focus. Using the “bar indicator” of CaptureShop for focusing is not sufficient.</li>
+<li>It seems that it is not necessary to perform the experiment at f/32. Most likely an aperture setting of f/16 or f/11 should be good enough for observing the nature of the PSF across the image plane.</li>
+<li>For exposure setting, use at least 2 seconds, and ISO 100 for f/8. For f/11 and/or f/16 verify if the exposure is good enough with 4 seconds exposure, and with ISO 100.</li>
+<li>Need to do dark-frame substraction.</li>
+<li>Should probably decrease the object distance by moving the camera forward. What about a distance of about 3 meters?</li>
+</ol>
+<h1 id="date-09-05-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-05-2014; Experiment: PSF measurement on tilted plane</h1>
+<h3 id="back-of-the-envelope-calculations-1">Back of the envelope calculations</h3>
+<pre class="sourceCode code python"><code>&gt;&gt;&gt; import iutils.exputils.imaging as eiu
+&gt;&gt;&gt; m = eiu.mag(180, u=3000)   # magnification (u=3m)
+&gt;&gt;&gt; m
+0.06382978723404255
+&gt;&gt;&gt; sensor_px = 6.0            # micron
+&gt;&gt;&gt; sensor_px_obj_space = sensor_px/m
+&gt;&gt;&gt; sensor_px_obj_space        # sensor pixel in object space
+94.00000000000001</code></pre>
+<h3 id="focusing-strategy">Focusing strategy</h3>
+<p>We found that using one of the point source images for visually measuring the degree of focus/misfocus is a good option. We could clearly see the blur spot when the point sources were not completely in focus.</p>
+<p>[TO DO: Insert to images one that is out of focus, and one in focus]</p>
+<h3 id="method-to-ensure-the-image-plane-lens-plane-object-plane-are-parallel">Method to ensure the image plane, lens plane &amp; object plane are parallel</h3>
+<p>At the start of the experiment, we need to ensure that the target plane, the lens plane and the sensor plane are parallel to each other. In order to achieve this configuration, we attached a small laser diode into an aluminum plane, which was machined to fit appropriately into the image standard. Another plastic plate, which was 3D printed, attached to the front standard in place of the lens, and a pin-hole was attached at the center of the plate. The configuration was such that the laser light would pass through the pin-hole only when the lens and image standards were parallel to each other and their centers were aligned. In this configuration, the laser light path represented the virtual optical axis. Now, a small mirror was placed on the target surface that reflected the laser light back towards the camera. The orientation of the target plane was adjusted until the reflected laser light traced the incident path eactly.</p>
+<p>We also used the same laser point to place the target’s center approximately near the optical axis.</p>
+<p>[TO DO: Insert images of the setup for this technique]</p>
+</body>
+</html>

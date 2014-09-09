@@ -15,6 +15,7 @@ Created on Mon Sep 01 11:52:53 2014
 # TODO !!!
 # 1. Find-out a way to cycle through the images in the same canvas without
 #    destroying and re-creating the canvas
+#    refer to this code: http://code.activestate.com/recipes/578063-saving-a-tkinter-canvas-image-or-animation-using-p/
 
 from __future__ import division, print_function
 import numpy as np
@@ -23,7 +24,7 @@ import iutils.pyutils.display as diu
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import Tkinter as _Tk
-
+from scipy.misc import imsave
 
 class pattern_plotter(object):
     def __init__(self, row_px=None, col_px=None, device=None):
@@ -189,6 +190,7 @@ col_of_pt_src = (0, 1, 0)   # color/ waelength of the dots
 patterns = ['dark_frame', 'centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left', ]
 pattern_counter = 0  # TODO !!! do this more elegently
 
+gSAVEPATTERNS = False
 
 def get_pattern(pattern, row_px, col_px):
     src = np.zeros((row_px, col_px, 3))
@@ -237,11 +239,20 @@ def get_pattern(pattern, row_px, col_px):
 def show_next_image(pp_obj, kwargs):
     """function called on keyboard input event attached to tkinter widget"""
     global pattern_counter
+    global gSAVEPATTERNS
     row_px = kwargs['row_px']
     col_px = kwargs['col_px']
     #print("pattern_counter:", pattern_counter)
     if pattern_counter < len(patterns):
         img = get_pattern(patterns[pattern_counter], row_px, col_px)
+        if gSAVEPATTERNS:
+            save_size = 200
+            row_s = row_px/2 - save_size/2
+            row_e = row_px/2 + save_size/2
+            col_s = col_px/2 - save_size/2
+            col_e = col_px/2 + save_size/2
+            imsave(patterns[pattern_counter]+'.png',
+                   img[row_s:row_e, col_s:col_e])
         pattern_counter += 1
         pp_obj.display_image(img)
     else:
