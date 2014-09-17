@@ -26,10 +26,10 @@ h1 a, h2 a, h3 a, h4 a, h5 a {
     color: #7a5ada; 
 }
 
-h1, h2, h3, h4, h5 { font-family: verdana;
-                     font-weight: bold;
-                     /*border-bottom: 1px dotted black;*/
-                     }
+h1, h2, h3, h4, h5, h6 { font-family: verdana;
+                         font-weight: bold;
+                         /*border-bottom: 1px dotted black;*/
+                        }
 h1 {                      /* shall be used for Date and Experiment name together */
         font-size: 110%;
         color: #000000;
@@ -61,6 +61,12 @@ h5 {
         color: #FFA07A;
 }
 
+h6 {
+        font-size: 90%;
+        font-style: italic;
+        color: #FFA0FF;
+}
+
 h1.title {
         font-size: 120%;
         font-weight: bold;
@@ -77,6 +83,13 @@ dt code {
 dd p {
         margin-top: 0;
 }
+
+/*
+.red {
+    color: red;
+}
+*/
+
 
 #footer {
         padding-top: 1em;
