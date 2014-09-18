@@ -160,6 +160,20 @@ def draw_guide_lines(src, line_gap_num_px, lines_num_px, val=(0.4, 0.4, 0.4)):
         src[:, line_col_left_beg:line_col_left_end, i] = val[i]
         src[:, line_col_right_beg:line_col_right_end, i] = val[i]
 
+def draw_corner_squares(src, sizePixels, val=(1.0, 1.0, 1.0)):
+    rowPx, colPx, _ = src.shape
+    #
+    rowStart = [0, 0, rowPx - sizePixels, rowPx - sizePixels]
+    rowEnd = [sizePixels, sizePixels, rowPx, rowPx]
+    colStart = [0, colPx - sizePixels, 0, colPx - sizePixels]
+    colEnd = [sizePixels, colPx, sizePixels, colPx]
+
+    for k in range(4):
+        for i in range(3):
+            src[rowStart[k]:rowEnd[k], colStart[k]:colEnd[k], i] = val[i]
+
+
+
 # point sources
 def draw_pt_src(src, pt_src_num_px, row_off, col_off, val=(1.0, 1.0, 1.0)):
     """function to draw point sources/ dots
@@ -299,7 +313,8 @@ DRAW_LINES = True
 col_of_pt_src = (0, 1, 0)   # color/ waelength of the dots
 
 # Specify the patterns to project
-patterns = ['dark_frame', 'vert_bars', 'god', 'centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left', ]
+patterns = ['dark_frame', 'vert_bars', 'corner_squares', 'god',
+            'centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left', ]
 pattern_counter = 0  # TODO !!! do this more elegently
 
 gSAVEPATTERNS = False
@@ -315,6 +330,9 @@ def get_pattern(pattern, row_px, col_px):
     elif pattern == 'god':
         god = grid_of_dots(row_px, col_px, dotSize=1, dotSpace=20).astype(src.dtype)
         src[:,:,1] = god
+        return src
+    elif pattern == 'corner_squares':
+        draw_corner_squares(src, 50, val=(0,1,0))
         return src
     else :
         if pattern == 'centered':
