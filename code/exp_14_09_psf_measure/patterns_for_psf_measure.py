@@ -21,12 +21,13 @@ from __future__ import division, print_function
 import numpy as np
 import iutils.exputils.imaging as eiu
 import iutils.pyutils.display as diu
+import iutils.pyutils.genutils as gnu
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import Tkinter as _Tk
 from scipy.misc import imsave
 
-class pattern_plotter(object):
+class PatternPlotter(object):
     def __init__(self, row_px=None, col_px=None, device=None):
         self.root = None
         # Changes based on monitor
@@ -88,10 +89,26 @@ class pattern_plotter(object):
         self._fig.canvas.mpl_connect('key_press_event', self.key_press)
         _Tk.mainloop()
 
-    def display_image(self, image):
+    def display_image(self, image, **kwargs):
         """top level function to display frame"""
         self._ax.clear()
         self._ax.imshow(image, interpolation='none') #, origin='lower') # shouldn't use this, should display the array as is
+        if kwargs:
+            iset =  set(['indx', 'indy'])
+            if len(set(kwargs.keys()).symmetric_difference(iset)) == 0:
+                indx = kwargs['indx']
+                indy = kwargs['indy']
+                colIndices = gnu.remove_duplicates_in_list(indx)
+                #rowIndices = gnu.remove_duplicates_in_list(indy)
+                totCol = len(colIndices)
+                #totRow = len(rowIndices)
+                totCnt = 0
+                for i, j in zip(indx, indy):
+                    colCnt = np.mod(totCnt, totCol)
+                    rowCnt = totCnt//totCol
+                    #self._ax.text(i+5, j+5, '{}'.format(totCnt), fontsize=6)
+                    self._ax.text(i+10, j+18, '{}.{}'.format(colCnt, rowCnt), fontsize=5)
+                    totCnt += 1
         self.show_slate()
 
 # ##################################
@@ -203,7 +220,8 @@ def draw_pt_src(src, pt_src_num_px, row_off, col_off, val=(1.0, 1.0, 1.0)):
     for i in range(3):
         src[pt_src_row_beg:pt_src_row_end, pt_src_col_beg:pt_src_col_end, i] = val[i]
 
-def grid_of_dots(rowPixels, colPixels, dotSize=2, dotSpace=5, dType='u8'):
+def grid_of_dots(rowPixels, colPixels, dotSize=2, dotSpace=5, dType='u8',
+                 retIndices=False):
     """Generate grid of dots pattern
 
     Parameters
@@ -214,18 +232,25 @@ def grid_of_dots(rowPixels, colPixels, dotSize=2, dotSpace=5, dType='u8'):
         total number of pixels along dimension 1 (horizontal)
     dotSize : integer
         size of square-dot in pixels
-    dotSpace : integer
+    dotSpace : integer, optional
         number of blank (zero-valued) pixels between the dots
         in horizontal and vertical directions.
-    dType : string
+    dType : string, optional
         the dtype of grid-of-dots numpy array. Use u8, i8, u16,
         i16, f16 for uint8, int8, uint16, int16, and float16
         respectively
+    retIndices : bool, optional
+        if ``True``, returns the row and column indices of the
+        pixel positions where the dots are located
 
     Returns
     -------
     god : ndarray
         the grid of dots pattern
+    rowIndices : ndarray, optional
+        ndarray of ndim=1
+    colIndices : ndarray, optional
+        ndarray of ndim=1
 
     Examples
     --------
@@ -242,7 +267,6 @@ def grid_of_dots(rowPixels, colPixels, dotSize=2, dotSpace=5, dType='u8'):
     abSize = dotSize + dotSpace
     ab = np.zeros((abSize, abSize), dtype=types[dType])
     ab[-dotSize:, -dotSize:] = 1
-    # print ab # for debugging
     # calculate integer repetition of atomic block
     abNumRepeatCols = colPixels//abSize
     abNumRepeatRows = rowPixels//abSize
@@ -251,7 +275,11 @@ def grid_of_dots(rowPixels, colPixels, dotSize=2, dotSpace=5, dType='u8'):
     r = abNumRepeatRows*abSize
     c = abNumRepeatCols*abSize
     god[:r, :c] = np.kron(np.ones((abNumRepeatRows, abNumRepeatCols), dtype=ab.dtype), ab)
-    return god
+    if retIndices:
+        nonZeroInd = np.nonzero(god)
+        return god, nonZeroInd[0], nonZeroInd[1]
+    else:
+        return god
 
 # Functions for drawing icons
 def show_plus_icon(grid, row_tl, col_tl, side=20, thick=4):
@@ -291,15 +319,17 @@ def draw_icon(src, display_img):
         show_minus_icon(src, screenOff_row, col_px - screenOff_col - side, side, thick)
 
 
-# ###########################
-# main code starts here
-# ############################
+# ##################################################################
+#
+#   Main Logic starts here
+#
+# ###################################################################
 
 # Pattern control parameters
 #row_px, col_px = 800, 1000
 col_px, row_px = diu.getPrimaryScreenResolution()
 device = 'surface_pro3' # 'vaioVPCF1'
-
+#device = 'vaioVPCF1'
 
 lines_num_px = 1
 line_gap_num_px = 20  # even
@@ -315,11 +345,34 @@ col_of_pt_src = (0, 1, 0)   # color/ waelength of the dots
 # Specify the patterns to project
 patterns = ['dark_frame', 'vert_bars', 'corner_squares', 'god',
             'centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left', ]
+#patterns = ['god']
+
 pattern_counter = 0  # TODO !!! do this more elegently
 
 gSAVEPATTERNS = False
 
-def get_pattern(pattern, row_px, col_px):
+def get_pattern(pattern, row_px, col_px, retMeta=False):
+    """The function returns a pattern and other fields as required
+
+    Parameters
+    ----------
+    pattern : string
+        the string code-name of the pattern
+    row_px : integer
+        pixel size of pattern along rows
+    col_px : integer
+        pixel size of the pattern along columns
+    retMeta : bool, optional
+        if ``True``, then the function returns a pattern and some other info.
+        For example, for the "god" pattern, the function returns
+
+    Returns
+    -------
+    pat : ndarray
+        the pattern
+    metaData : optional
+        based on rules
+    """
     src = np.zeros((row_px, col_px, 3))
     if pattern == 'dark_frame':
         return src
@@ -328,11 +381,19 @@ def get_pattern(pattern, row_px, col_px):
         draw_vertical_lens(src, [border_offset, col_px-border_offset], 1)
         return src
     elif pattern == 'god':
-        god = grid_of_dots(row_px, col_px, dotSize=1, dotSpace=20).astype(src.dtype)
-        src[:,:,1] = god
-        return src
+        dotSpace = 40
+        if retMeta:
+            god, rowInd, colInd = grid_of_dots(row_px, col_px, dotSize=1,
+                                               dotSpace=dotSpace, retIndices=True)
+            assert len(rowInd) == len(colInd)
+            src[:,:,1] = god.astype(src.dtype)
+            return src, rowInd, colInd
+        else:
+            god = grid_of_dots(row_px, col_px, dotSize=1, dotSpace=dotSpace)
+            src[:,:,1] = god.astype(src.dtype)
+            return src
     elif pattern == 'corner_squares':
-        draw_corner_squares(src, 50, val=(0,1,0))
+        draw_corner_squares(src, 30, val=(0,1,0))
         return src
     else :
         if pattern == 'centered':
@@ -371,14 +432,22 @@ def get_pattern(pattern, row_px, col_px):
 
 #
 def show_next_image(pp_obj, kwargs):
-    """function called on keyboard input event attached to tkinter widget"""
+    """callback function called on keyboard input event attached to tkinter
+    widget. This function gets the next pattern to project and calls
+    the ``display_image()`` method of the ``PatternPlotter`` class.
+    """
+    global patterns
     global pattern_counter
     global gSAVEPATTERNS
     row_px = kwargs['row_px']
     col_px = kwargs['col_px']
     #print("pattern_counter:", pattern_counter)
     if pattern_counter < len(patterns):
-        img = get_pattern(patterns[pattern_counter], row_px, col_px)
+        patName = patterns[pattern_counter]
+        if patName == 'god':
+            img, indR, indC = get_pattern(patName, row_px, col_px, retMeta=True)
+        else:
+            img = get_pattern(patName, row_px, col_px)
         if gSAVEPATTERNS:
             save_size = 200
             row_s = row_px/2 - save_size/2
@@ -388,13 +457,18 @@ def show_next_image(pp_obj, kwargs):
             imsave(patterns[pattern_counter]+'.png',
                    img[row_s:row_e, col_s:col_e])
         pattern_counter += 1
-        pp_obj.display_image(img)
+
+        # Call the display function
+        if patName=='god':
+            pp_obj.display_image(img, indx=indC, indy=indR)
+        else:
+            pp_obj.display_image(img)
     else:
         print("All patterns projected")
         exit()  # This is not really graceful exit!!! How can I handle this?
 
 # Create plotter object
-pp = pattern_plotter(row_px, col_px, device)
+pp = PatternPlotter(row_px, col_px, device)
 
 # register function to be called on subsequent key-press
 pp.call_on_key_press(show_next_image, row_px=row_px, col_px=col_px)

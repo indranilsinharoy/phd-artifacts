@@ -10,11 +10,11 @@ Created on Tue Sep 09 02:43:27 2014
 from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.pylab import ginput
 import iutils.pyutils.aputils as apu
 import iutils.opticsutils.plotutils as opt
 # import Christoph Gholke's tifffile module
 import iutils.imageutils.tifffile.tifffile as tf
+from getROIFromCornerSquareImage import get_roi_edge_from_blobs
 
 # helper functions
 def get_crop_para(camera=0, centralRegion=True, row_off_ctr=0, col_off_ctr=0, blockSize=200):
@@ -62,21 +62,9 @@ def get_crop_para(camera=0, centralRegion=True, row_off_ctr=0, col_off_ctr=0, bl
         pass  # not yet defined
     return start_row, start_col, total_rows, total_cols
 
-
-def get_crop_parameters_from_user(img):
-    fig, ax = plt.subplots(1, 1, figsize=(8,6))
-    img = img.astype(np.uint32)
-    img = img/np.max(img)
-    ax.imshow(img)
-    ax.set_title('Select 4 points')
-    pts = ginput(4)
-    plt.show()
-    print(pts)
-
-    return
-
-
+# ################################
 # main logic starts here
+# ################################
 #imf = "C:\\thesis_images\\2014_09_05_psfmeasurement\\14_09_05_psf_measurement03.tif"
 #bff = "C:\\thesis_images\\2014_09_05_psfmeasurement\\14_09_05_psf_measurement01.tif"
 # rowOffCtr, colOffCtr = 467, -175
@@ -89,32 +77,54 @@ def get_crop_parameters_from_user(img):
 #bff = "C:\\thesis_images\\2014_09_14_psfmeasurement\\tilt_35_degree\\DarkFrame.tif"
 #rowOffCtr, colOffCtr = 55, 132
 
+#imf = "C:\\thesis_images\\2014_09_15_psfmeasurement\\40degrees\\DotPattern_F16Ap_15secExp.tif"
+#bff = "C:\\thesis_images\\2014_09_15_psfmeasurement\\40degrees\\DarkFrame_F16Ap_15secExp.tif"
+#rowOffCtr, colOffCtr = -45, 137
 
-imf = "C:\\thesis_images\\2014_09_15_psfmeasurement\\40degrees\\DotPattern_F16Ap_15secExp.tif"
-bff = "C:\\thesis_images\\2014_09_15_psfmeasurement\\40degrees\\DarkFrame_F16Ap_15secExp.tif"
-rowOffCtr, colOffCtr = -45, 137
+imf = "C:\\thesis_images\\2014_09_17_psfmeasurement\\zero_degrees\\DotPattern.tif"
+bff = "C:\\thesis_images\\2014_09_17_psfmeasurement\\zero_degrees\\DarkFrame.tif"
+cif = "C:\\thesis_images\\2014_09_17_psfmeasurement\\zero_degrees\\CornerSquares.tif"
 
-
-g_GET_CROP_PARA_USER = False
+# Program control parameters
+sensor = 'Sinar86H'
+cornerSquareImageAvailable = True
 
 # Read in the image file
 img = tf.imread(imf)
+cimg = tf.imread(cif)
 bframe = tf.imread(bff)
 
-# cropping parameters
-if g_GET_CROP_PARA_USER:
-    get_crop_parameters_from_user(img)
-else:
-    start_row, start_col, tot_rows, tot_cols = get_crop_para(camera=0,
-                                                             centralRegion=True,
-                                                             row_off_ctr=rowOffCtr,
-                                                             col_off_ctr=colOffCtr,
-                                                             blockSize=50)
+# Channel code
 red, green, blue = 0, 1, 2
-img = img[start_row:start_row + tot_rows, start_col:start_col + tot_cols,
-          green]
-bframe = bframe[start_row:start_row + tot_rows, start_col:start_col + tot_cols,
-                green]
+
+# cropping parameters
+if cornerSquareImageAvailable: # this can be a function later on
+    cbimg = cimg[:,:,green].astype(np.int32) - bframe[:,:,green].astype(np.int32)
+    rmin, rmax, cmin, cmax = get_roi_edge_from_blobs(cbimg, gBand=0, expBlobs=4)
+
+else:
+    rmin, cmin = 0
+    rmax, cmax, _ = img.shape
+
+print("rmin, rmax, cmin, cmax, rmax-rmin, cmax-cmin:", rmin, rmax, cmin, cmax, rmax-rmin, cmax-cmin)
+
+img = img[rmin:rmax, cmin:cmax, green]
+bframe = bframe[rmin:rmax, cmin:cmax, green]
+
+# delete corner image as it is not required any more to save memory
+del cimg, cbimg
+
+# further cropping to zoom-in onto a few PSFs
+#start_row, start_col, tot_rows, tot_cols = get_crop_para(camera=0,
+#                                                         centralRegion=True,
+#                                                         row_off_ctr=rowOffCtr,
+#                                                         col_off_ctr=colOffCtr,
+#                                                         blockSize=bSize)
+
+#img = img[start_row:start_row + tot_rows, start_col:start_col + tot_cols]
+#bframe = bframe[start_row:start_row + tot_rows, start_col:start_col + tot_cols]
+
+
 
 # TODO !!
 # create a bframe that is per-pixel median of a few  frames
@@ -124,12 +134,11 @@ bframe = bframe[start_row:start_row + tot_rows, start_col:start_col + tot_cols,
 # such as subtracting etc, with might produce -ve values in the intermediate
 # steps. This is the reason, we need to convert the array to signed 32 bits
 
-img = img.astype(np.int32)
-bframe = bframe.astype(np.int32)
+if sensor =='Sinar86H':
+    img = img.astype(np.int32)
+    bframe = bframe.astype(np.int32)
 
-print(img.dtype)
-print(bframe.dtype)
-
+# Subtract dark frame
 img_bfr = img - bframe
 
 max_val_img = np.max(img)
@@ -137,7 +146,6 @@ max_val_bframe = np.max(bframe)
 max_val_img_bfr = np.max(img_bfr)
 min_val_img_bfr = np.min(img_bfr)
 
-print(img_bfr.dtype)
 
 # print info
 print("Before any processing")
@@ -195,11 +203,30 @@ print("Min value in bframe", np.min(bframe))
 print("Max value in subtracted frame", np.max(img_bfr))
 print("Min value in subtracted frame", np.min(img_bfr))
 
-fig, ax = plt.subplots(1, 3)
-ax0, ax1, ax2 = ax.flat
+
+#fig, axes = plt.subplots(1, 3, figsize=(16, 8), sharex=True, sharey=True)
+#ax0, ax1, ax2 = axes.flat
+ayMax, axMax = img.shape # Here it must be 2D only
+setEqual = False if (axMax - ayMax) else True
 col = opt.intensityPSF_Fire(1000)
+
+fig = plt.figure(figsize=(16,8))
+ax0 = fig.add_subplot(131)
 ax0.imshow(img, cmap=col, interpolation='none', vmax=1, vmin=0)
+ax0.set_ylim(ayMax, 0); ax0.set_xlim(0, axMax)
+
+ax1 = fig.add_subplot(132, sharex=ax0, sharey=ax0)
 ax1.imshow(bframe, cmap=col, interpolation='none', vmax=1, vmin=0)
+ax1.set_ylim(ayMax, 0); ax1.set_xlim(0, axMax)
+
+ax2 = fig.add_subplot(133, sharex=ax0, sharey=ax0)
 ax2.imshow(img_bfr, cmap=col, interpolation='none', vmax=1, vmin=0)
+ax2.set_ylim(ayMax, 0); ax2.set_xlim(0, axMax)
+
+for ax in (ax0, ax1, ax2):
+    ax.autoscale_view(tight='True')
+    if setEqual:
+        ax.set_aspect('equal')
+
 fig.tight_layout()
 plt.show()
