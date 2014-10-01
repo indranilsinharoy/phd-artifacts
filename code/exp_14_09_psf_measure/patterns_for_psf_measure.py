@@ -107,7 +107,8 @@ class PatternPlotter(object):
                     colCnt = np.mod(totCnt, totCol)
                     rowCnt = totCnt//totCol
                     #self._ax.text(i+5, j+5, '{}'.format(totCnt), fontsize=6)
-                    self._ax.text(i+10, j+18, '{}.{}'.format(colCnt, rowCnt), fontsize=5)
+                    self._ax.text(i+10, j+18, '{}.{}'.format(colCnt, rowCnt),
+                                  fontsize=5, color='#006600')
                     totCnt += 1
         self.show_slate()
 
