@@ -221,7 +221,7 @@ def draw_pt_src(src, pt_src_num_px, row_off, col_off, val=(1.0, 1.0, 1.0)):
     for i in range(3):
         src[pt_src_row_beg:pt_src_row_end, pt_src_col_beg:pt_src_col_end, i] = val[i]
 
-def grid_of_dots(rowPixels, colPixels, dotSize=2, dotSpace=5, dType='u8',
+def grid_of_dots(rowPixels, colPixels, dotSize=2, dotSpace=5, dType='u8', val=1.0,
                  retIndices=False):
     """Generate grid of dots pattern
 
@@ -267,7 +267,7 @@ def grid_of_dots(rowPixels, colPixels, dotSize=2, dotSpace=5, dType='u8',
     # build atomic block
     abSize = dotSize + dotSpace
     ab = np.zeros((abSize, abSize), dtype=types[dType])
-    ab[-dotSize:, -dotSize:] = 1
+    ab[-dotSize:, -dotSize:] = val
     # calculate integer repetition of atomic block
     abNumRepeatCols = colPixels//abSize
     abNumRepeatRows = rowPixels//abSize
@@ -350,6 +350,14 @@ patterns = ['dark_frame', 'vert_bars', 'corner_squares', 'god',
 
 pattern_counter = 0  # TODO !!! do this more elegently
 
+gVARYDOTSINTENSITYBYANGLE = True
+gCURANGLE = 40
+gMAXANGLE = 40
+gMINANGLE = 0
+
+#TODO !!! vary intensity per row/colum based on distance .... the radiometric
+# variance due to angle will remain constant.
+
 gSAVEPATTERNS = False
 
 def get_pattern(pattern, row_px, col_px, retMeta=False):
@@ -383,8 +391,10 @@ def get_pattern(pattern, row_px, col_px, retMeta=False):
         return src
     elif pattern == 'god':
         dotSpace = 40
+        if gVARYDOTSINTENSITYBYANGLE:
+            val = np.cos(np.deg2rad(gMAXANGLE - gCURANGLE))**3
         if retMeta:
-            god, rowInd, colInd = grid_of_dots(row_px, col_px, dotSize=1,
+            god, rowInd, colInd = grid_of_dots(row_px, col_px, dotSize=1, val=val, dType='f16',
                                                dotSpace=dotSpace, retIndices=True)
             assert len(rowInd) == len(colInd)
             src[:,:,1] = god.astype(src.dtype)
@@ -414,18 +424,23 @@ def get_pattern(pattern, row_px, col_px, retMeta=False):
             draw_icon(src, 4)
         #print("pattern: ", pattern)
         # central point
+        if gVARYDOTSINTENSITYBYANGLE:
+            val = np.cos(np.deg2rad(gMAXANGLE - gCURANGLE))**3
+            col = [val*i for i in col_of_pt_src]
+        else:
+            col = col_of_pt_src
         draw_pt_src(src, pt_src_num_px, row_off=row_shift,
-                    col_off=col_shift, val=col_of_pt_src)
+                    col_off=col_shift, val=col)
         # petals
         for i in range(1, petal_length+1):
             draw_pt_src(src, pt_src_num_px, row_off=-pt_src_off*i + row_shift,
-                        col_off=col_shift, val=col_of_pt_src)
+                        col_off=col_shift, val=col)
             draw_pt_src(src, pt_src_num_px, row_off=pt_src_off*i + row_shift,
-                        col_off=col_shift, val=col_of_pt_src)
+                        col_off=col_shift, val=col)
             draw_pt_src(src, pt_src_num_px, row_off=row_shift,
-                        col_off=-pt_src_off*i + col_shift, val=col_of_pt_src)
+                        col_off=-pt_src_off*i + col_shift, val=col)
             draw_pt_src(src, pt_src_num_px, row_off=row_shift,
-                        col_off=pt_src_off*i + col_shift, val=col_of_pt_src)
+                        col_off=pt_src_off*i + col_shift, val=col)
         if DRAW_LINES:
             draw_guide_lines(src, line_gap_num_px, lines_num_px,
                              val=(0.0, 0.3, 0.0))

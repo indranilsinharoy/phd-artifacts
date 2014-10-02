@@ -58,3 +58,5 @@ docs/_build/
 code/exp_14_09_psf_measure/zmxfiles/tilted image plane.CFG
 code/exp_14_09_psf_measure/zmxfiles/tilted image plane.SES
 code/exp_14_09_psf_measure/.ipynb_checkpoints/AnalysisOfPSFImages-checkpoint.ipynb
+*.CFG
+*.SES

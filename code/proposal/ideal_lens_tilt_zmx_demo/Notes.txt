@@ -1,7 +1,7 @@
 Procedure to use this file:
 1. Adjust the thickness of the surface "Dist. from last lens surf. to IMG" with all planes parallel: 
    (a) Set the tilt angles for the CB to '0'; 
-         (a.1)  Change the focal length (if required); 
+         (a.1)  Change the focal length (if required), object distance, etc; 
          (a.2) use Quick Adjust to adjust the thickness; [or even put M solve on the thickness]
    (b) Remove the solve for the thickness; Then set the angle of the image plane i.e. tilt X of "CB surf to tilt IMG"; 
    (c) Optimize
@@ -10,5 +10,10 @@ Note: Although the above procedure will work, a cleaner way is:
 (a) Set the tilt angles for the CB to '0'; 
 (b) Remove the solve for the angle on CB; 
 (c) add variable solve on the thickness  of the surface "Dist. from last lens surf. to IMG" and optimize for the RMS spot size; 
-(d) remove the solve for the thickness, apply solve for the PSF tilt and set IMG tilt angle. 
+(d) remove the solve for the thickness, apply solve for the PoSF tilt and set IMG tilt angle. 
 (e) optimize
+
+
+Other notes:
+1. The object distance must be set in the thickness of the CB after OBJ and not the thickness of the OBJ.....
+2.  
