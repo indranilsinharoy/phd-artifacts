@@ -351,7 +351,7 @@ patterns = ['dark_frame', 'vert_bars', 'corner_squares', 'god',
 pattern_counter = 0  # TODO !!! do this more elegently
 
 gVARYDOTSINTENSITYBYANGLE = True
-gCURANGLE = 40
+gCURANGLE = 0
 gMAXANGLE = 40
 gMINANGLE = 0
 
@@ -393,14 +393,15 @@ def get_pattern(pattern, row_px, col_px, retMeta=False):
         dotSpace = 40
         if gVARYDOTSINTENSITYBYANGLE:
             val = np.cos(np.deg2rad(gMAXANGLE - gCURANGLE))**3
+        else:
+            val = 1.0
         if retMeta:
-            god, rowInd, colInd = grid_of_dots(row_px, col_px, dotSize=1, val=val, dType='f16',
-                                               dotSpace=dotSpace, retIndices=True)
+            god, rowInd, colInd = grid_of_dots(row_px, col_px, dotSize=1, val=val, dType='f16', dotSpace=dotSpace, retIndices=True)
             assert len(rowInd) == len(colInd)
             src[:,:,1] = god.astype(src.dtype)
             return src, rowInd, colInd
         else:
-            god = grid_of_dots(row_px, col_px, dotSize=1, dotSpace=dotSpace)
+            god = grid_of_dots(row_px, col_px, dotSize=1, val=val, dType='f16', dotSpace=dotSpace)
             src[:,:,1] = god.astype(src.dtype)
             return src
     elif pattern == 'corner_squares':
@@ -461,7 +462,8 @@ def show_next_image(pp_obj, kwargs):
     if pattern_counter < len(patterns):
         patName = patterns[pattern_counter]
         if patName == 'god':
-            img, indR, indC = get_pattern(patName, row_px, col_px, retMeta=True)
+            #img, indR, indC = get_pattern(patName, row_px, col_px, retMeta=True)
+            img = get_pattern(patName, row_px, col_px, retMeta=False)
         else:
             img = get_pattern(patName, row_px, col_px)
         if gSAVEPATTERNS:
@@ -476,7 +478,8 @@ def show_next_image(pp_obj, kwargs):
 
         # Call the display function
         if patName=='god':
-            pp_obj.display_image(img, indx=indC, indy=indR)
+            #pp_obj.display_image(img, indx=indC, indy=indR)
+            pp_obj.display_image(img)
         else:
             pp_obj.display_image(img)
     else:
