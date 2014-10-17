@@ -344,9 +344,9 @@ DRAW_LINES = True
 col_of_pt_src = (0, 1, 0)   # color/ waelength of the dots
 
 # Specify the patterns to project
-patterns = ['dark_frame', 'vert_bars', 'corner_squares', 'god',
-            'centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left', ]
-#patterns = ['god']
+#patterns = ['dark_frame', 'vert_bars', 'corner_squares', 'god',
+#            'centered', 'shift_top', 'shift_right', 'shift_down', 'shift_left', ]
+patterns = ['god']
 
 pattern_counter = 0  # TODO !!! do this more elegently
 

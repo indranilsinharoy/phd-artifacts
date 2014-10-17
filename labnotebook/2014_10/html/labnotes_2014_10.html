@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>Lab notes, October 2014</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="css/labnotes.css" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">Lab notes, October 2014</h1>
+</div>
+<p>Sub-sections:</p>
+<ul>
+<li><a href="#finding-the-center-of-perspective">Determination of COP</a></li>
+<li><a href="#determination-of-the-pivot-points">Determination of Pivot pionts</a></li>
+</ul>
+<h1 id="finding-the-center-of-perspective">Finding the Center of Perspective</h1>
+<h2 id="goal">Goal</h2>
+<p>Tilting/swinging the lens about a point away from the center of projection (COP), causes a shift in the field of view that in turn causes an unexpected shift in the image as a result of parallax.</p>
+<p>The center of projection is also known as the Center of perspective. Technically, it is the center of the entrance pupil.</p>
+<p>Similarly, it is desirable to tilted/swung the image plane about a central axis. For example, if we need to compare the PSFs in tilted vs untilted configurations, then we <em>may</em> need to ensure that the magnification in the central portion (where the optical aberrations are least) of the images have same magnification.</p>
+<p>The Sinar camera’s lens and image standard uses asymmetrical tilt/swing axis, which greatly aid in manual focusing on tilted objects. Thus we need to compensate ….</p>
+<hr />
+<p>Date: 10-03-2014</p>
+<hr />
+<h3 id="setup">Setup</h3>
+<div class="figure">
+<img src="images/cop_esti_contraption_00_blades.jpg" alt="Fig: The blades" /><p class="caption"><em>Fig: The blades</em></p>
+</div>
+<div class="figure">
+<img src="images/cop_esti_contraption_01_blades.jpg" alt="Fig: Ensuring that the blades are not curved, using shadow" /><p class="caption"><em>Fig: Ensuring that the blades are not curved, using shadow</em></p>
+</div>
+<div class="figure">
+<img src="images/cop_esti_contraption_02_blades.jpg" alt="Fig: The blades mounted on optical posts, which are mounted on open builds gantry plates" /><p class="caption"><em>Fig: The blades mounted on optical posts, which are mounted on open builds gantry plates</em></p>
+</div>
+<div class="figure">
+<img src="images/cop_esti_contraption_02_align.jpg" alt="Fig: Aligning the blades (on optical posts) using a laser source" /><p class="caption"><em>Fig: Aligning the blades (on optical posts) using a laser source</em></p>
+</div>
+<div class="figure">
+<img src="images/cop_esti_contraption_03_displace.jpg" alt="Fig: Top view of the blades on the rail" /><p class="caption"><em>Fig: Top view of the blades on the rail</em></p>
+</div>
+<div class="figure">
+<img src="images/copShiftRest_05_CamLookStFocusFrontKnife.jpg" alt="Fig: View through the Sinar camera, lens focused on the front post; the blade is marked green" /><p class="caption"><em>Fig: View through the Sinar camera, lens focused on the front post; the blade is marked green</em></p>
+</div>
+<div class="figure">
+<img src="images/copShiftRest_04_CamLookStFocusBackKnife.jpg" alt="Fig: View through the Sinar camera, lens focused on the back post; the blade is marked red" /><p class="caption"><em>Fig: View through the Sinar camera, lens focused on the back post; the blade is marked red</em></p>
+</div>
+<div class="figure">
+<img src="images/cop_esti_contraption_04_rotOffCOP.jpg" alt="Fig: The rotation axis, shown in red, is away from the COP (to be determined)" /><p class="caption"><em>Fig: The rotation axis, shown in red, is away from the COP (to be determined)</em></p>
+</div>
+<div class="figure">
+<img src="images/copShiftRest_01_CamLookStraight.jpg" alt="Fig: Image of the two posts and blades as seen by the Sinar camera. The second post (marked red) is hidden behind the first (marked green)" /><p class="caption"><em>Fig: Image of the two posts and blades as seen by the Sinar camera. The second post (marked red) is hidden behind the first (marked green)</em></p>
+</div>
+<div class="figure">
+<img src="images/copShiftRest_07_CamRotRightTwelveDeg.jpg" alt="Fig: Sinar camera rotated right by about 12 degrees" /><p class="caption"><em>Fig: Sinar camera rotated right by about 12 degrees</em></p>
+</div>
+<div class="figure">
+<img src="images/copShiftRest_06_CamRotLeftTenDeg.jpg" alt="Fig: Sinar camera rotated left by about 10 degrees" /><p class="caption"><em>Fig: Sinar camera rotated left by about 10 degrees</em></p>
+</div>
+<div class="figure">
+<img src="images/cop_esti_contraption_05_rotNearCOP.jpg" alt="Fig: The rotation axis, shown in red, is very near to the COP" /><p class="caption"><em>Fig: The rotation axis, shown in red, is very near to the COP</em></p>
+</div>
+<div class="figure">
+<img src="images/copShiftRest_02_CamRotRightTwelveDeg.jpg" alt="Fig: Sinar camera rotated right by about 12 degrees" /><p class="caption"><em>Fig: Sinar camera rotated right by about 12 degrees</em></p>
+</div>
+<div class="figure">
+<img src="images/copShiftRest_03_CamRotLeftTenDeg.jpg" alt="Fig: Sinar camera rotated left by about 10 degrees" /><p class="caption"><em>Fig: Sinar camera rotated left by about 10 degrees</em></p>
+</div>
+<p>Note that in the above two figures, the red blades that were placed behind the green blades suddenly appeared towards the “outer” sides. This situation shouldn’t happen normally. I have to correct this and find the source of this error.</p>
+<p><em>* Date: 10-04-2014</em>*</p>
+<div class="figure">
+<img src="images/COPExp_02_AwayFromCOP_LookSt.jpg" alt="Fig: Camera looking straight" /><p class="caption"><em>Fig: Camera looking straight</em></p>
+</div>
+<div class="figure">
+<img src="images/COPExp_02_NearCOP_RotRightTenDeg.jpg" alt="Fig: Sinar camera rotated right by about 10 degrees" /><p class="caption"><em>Fig: Sinar camera rotated right by about 10 degrees</em></p>
+</div>
+<div class="figure">
+<img src="images/COPExp_02_NearCOP_RotLeftTenDeg.jpg" alt="Fig: Sinar camera rotated left by about 10 degrees" /><p class="caption"><em>Fig: Sinar camera rotated left by about 10 degrees</em></p>
+</div>
+<p>Using the above method, I was able to find the distance of the COP from the front standard’s pivot plane (see how we estimated it below) at zero swing and tilt to be <strong>19 mm</strong>.</p>
+<h1 id="determination-of-the-pivot-points">Determination of the pivot points</h1>
+<p>The basic idea behind the following method of determination of the pivot point is that the (tangent) lines when rotated about an axis traces a circle. The radius of the traced circle is directly proportional to the (perpendicular) distance from the line from the point of rotation (pivot).</p>
+<hr />
+<p>Date: 10-08-2014</p>
+<hr />
+<p>The following pictures show how we were able to determine the pivot points.</p>
+<p><strong>Pivot point in the vertical direction for the front standard</strong></p>
+<div class="figure">
+<img src="images/PivotEstimation_hy_FrontStandardAnim.gif" alt="Fig: Finding the pivot in vertical direction for front standard" /><p class="caption"><em>Fig: Finding the pivot in vertical direction for front standard</em></p>
+</div>
+<p>The pivot point in the vertical direction, <span class="math"><em>h</em><sub><em>y</em></sub></span>, was found to be -10 mm (i.e. 10 mm below the optical axis), as shown in the following figure.</p>
+<div class="figure">
+<img src="images/PivotEstimation_hy_FrontStandard.jpg" alt="Fig: The pivot in vertical direction for front standard shown by the green dot." /><p class="caption"><em>Fig: The pivot in vertical direction for front standard shown by the green dot.</em></p>
+</div>
+<p><strong>Pivot point in the horizontal direction for the front standard:</strong></p>
+<div class="figure">
+<img src="images/PivotEstimation_hx_FrontStandardAnim.gif" alt="Fig: Finding the pivot in horizontal direction for front standard." /><p class="caption"><em>Fig: Finding the pivot in horizontal direction for front standard.</em></p>
+</div>
+<p>The pivot point in the horizontal direction, <span class="math"><em>h</em><sub><em>x</em></sub></span>, was found to be -12 mm (i.e. 12 mm to the left optical axis ??), as shown in the following figure.</p>
+<div class="figure">
+<img src="images/PivotEstimation_hx_FrontStandard.jpg" alt="Fig: The pivot in horizontal direction for front standard shown by the green dot" /><p class="caption"><em>Fig: The pivot in horizontal direction for front standard shown by the green dot</em></p>
+</div>
+<p><strong>Pivot point in the vertical direction for the back standard</strong></p>
+<div class="figure">
+<img src="images/PivotEstimation_hy_BackStandardAnim.gif" alt="Fig: Finding the pivot in vertical direction for back standard" /><p class="caption"><em>Fig: Finding the pivot in vertical direction for back standard</em></p>
+</div>
+<p>The pivot point in the vertical direction, <span class="math"><em>h</em><sub><em>y</em></sub></span>, was found to be -10 mm (i.e. 10 mm below the optical axis), as shown in the following figure.</p>
+<div class="figure">
+<img src="images/PivotEstimation_hy_BackStandard.jpg" alt="Fig: The pivot in vertical direction for back standard shown by the green dot." /><p class="caption"><em>Fig: The pivot in vertical direction for back standard shown by the green dot.</em></p>
+</div>
+<h1 id="experimental-verification-cop-shift-compensation">Experimental verification COP shift compensation</h1>
+<p>The main idea behind this experiment is to verify that we can in-effect place the pivot for swing and tilt of the lens standard to be at the COP of the lens.</p>
+<p>If the lens is not swung/tilted about its COP there will inevitably be a “shift” between the images. So, we will try to see if we can indeed nullify this shift after the COP shift compensation.</p>
+<hr />
+<p>Date: 10-15-2014</p>
+<hr />
+<p>The contraption for the experimental verification for COP shift compensation is shown below.</p>
+<div class="figure">
+<img src="images/copShiftCompExpContraption_01.jpg" alt="Fig: ." /><p class="caption"><em>Fig: .</em></p>
+</div>
+<div class="figure">
+<img src="images/copShiftCompExpContraption_02.jpg" alt="Fig: ." /><p class="caption"><em>Fig: .</em></p>
+</div>
+</body>
+</html>

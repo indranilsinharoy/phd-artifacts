@@ -30,13 +30,14 @@ h1, h2, h3, h4, h5, h6 { font-family: verdana;
                          font-weight: bold;
                          /*border-bottom: 1px dotted black;*/
                         }
-h1 {                      /* shall be used for Date and Experiment name together */
+
+h1 {                      
         font-size: 110%;
-        color: #000000;
+        color: #3333FF;
         padding-top: 0.5em;
         padding-bottom: 0.5em;
-        border-top: 1px dotted gray;
-        border-bottom: 1px dotted gray;
+        border-top: 2px dotted gray;
+        border-bottom: 2px dotted gray;
 }
 
 h2 {

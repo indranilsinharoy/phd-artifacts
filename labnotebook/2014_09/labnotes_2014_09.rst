@@ -4,13 +4,19 @@ Lab notes, September 2014
 .. refer to http://docutils.sourceforge.net/docs/user/rst/quickref.html for quick
    info into reStructuredText
 
-Date: 09-03-2014; Experiment: PSF measurement on tilted plane 
--------------------------------------------------------------
+PSF measurement on tilted plane 
+--------------------------------
 
 Goal
 ~~~~~
 Measure PSF on a tilted image plane and compare with rigid camera PSFs for 3 
 points close to the optical axis (satisfying paraxial conditions)
+
+-----------------
+
+Date: 09-03-2014
+
+-------------------
 
 Experimental setup
 ``````````````````
@@ -477,8 +483,14 @@ Luckily, I had a copy of Visual Studio 2008 Professional. I installed it with th
 After the installation, the build was successful.
 
 
-Date: 09-11-2014; Experiment: PSF measurement on tilted plane
--------------------------------------------------------------
+
+-------------------
+
+
+Date: 09-11-2014
+
+
+------------------
 
 .. _focusing_strategy_label:
 
@@ -546,16 +558,24 @@ With the front standard (controls plane of maximum sharpness but not perspective
  full object in sharp focus. You don't need to do any re-adjustment to tilt.
 
 
-Date: 09-12-2014; Experiment: PSF measurement on tilted plane
--------------------------------------------------------------
+--------------------
+
+Date: 09-12-2014
+
+----------------------
+
+
 Worked on the code to process the captured images and updated code for projecting
 patterns. 
 
 
 
+-------------------
 
-Date: 09-14-2014; Experiment: PSF measurement on tilted plane
--------------------------------------------------------------
+Date: 09-14-2014
+
+---------------------
+
 We collected some data in tilted plane configuration; However, it seems that the
 supposed orientation of the object plane was mis-represented. Additionally, there
 was also about a degree of positive tilt of the image plane w.r.t. the lens plane.
@@ -566,9 +586,11 @@ was also about a degree of positive tilt of the image plane w.r.t. the lens plan
 
 
 
+-------------------
 
-Date: 09-15-2014; Experiment: PSF measurement on tilted plane
--------------------------------------------------------------
+Date: 09-15-2014
+
+---------------------
 
 
 
@@ -632,8 +654,14 @@ also measured the height of an R/G/B photo-site to be about 94.2 microns.
 
 
 
+
+-------------------
+
 Date: 09-16-2014
-****************
+
+
+-------------------
+
 
 As it turned out, it was the auto scaling on High DPI setting in Windows 8.1 
 (in my Surface Pro 3) that was causing this issue.   

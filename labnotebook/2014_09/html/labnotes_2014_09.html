@@ -4,23 +4,27 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
-  <title></title>
+  <title>Lab notes, September 2014</title>
   <style type="text/css">code{white-space: pre;}</style>
   <link rel="stylesheet" href="css/labnotes.css" type="text/css" />
 </head>
 <body>
-<style> .red {color:red} </style>
-<h1 id="lab-notes-september-2014">Lab notes, September 2014</h1>
-<h2 id="date-09-03-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-03-2014; Experiment: PSF measurement on tilted plane</h2>
-<h3 id="goal">Goal</h3>
+<div id="header">
+<h1 class="title">Lab notes, September 2014</h1>
+</div>
+<h1 id="psf-measurement-on-tilted-plane">PSF measurement on tilted plane</h1>
+<h2 id="goal">Goal</h2>
 <p>Measure PSF on a tilted image plane and compare with rigid camera PSFs for 3 points close to the optical axis (satisfying paraxial conditions)</p>
-<h4 id="experimental-setup">Experimental setup</h4>
+<hr />
+<p>Date: 09-03-2014</p>
+<hr />
+<h3 id="experimental-setup">Experimental setup</h3>
 <div class="figure">
 <img src="images/expt_psfmeasure_basic_setup_hand_schematic.png" alt="Fig: Schematic of experimental setup" /><p class="caption"><em>Fig: Schematic of experimental setup</em></p>
 </div>
-<h5 id="camera">Camera</h5>
+<h4 id="camera">Camera</h4>
 <p>To start the experiment, we are going to use a Sinar 86H eVolution digital back (see the specs below), and a Rodenstock HR Digaron - S, 180 mm, f/5.6 - f/64 lens (sepcs below) attached to a Sinar P3 view camera body.</p>
-<h6 id="specifications-of-86h-digital-back">Specifications of 86H digital back</h6>
+<h5 id="specifications-of-86h-digital-back">Specifications of 86H digital back</h5>
 <p>Source: <a href="http://www.sinar.ch/en/category/products/digital-backs/sinarback-evolution-86-h/">Sinarback86H</a></p>
 <ul>
 <li>Sensor type - Dalsa FTF 6080C – RGB Mosaikfilter, Full Frame (48.0x36.0 mm)</li>
@@ -29,7 +33,7 @@
 <li>Exposure time - 1/10000 second up to 32 seconds</li>
 <li>Digitization - 48 bits (16 bits per channel)</li>
 </ul>
-<h6 id="specifications-of-rodenstock-hr-digaron-5.6180-lens">Specifications of Rodenstock HR Digaron 5.6/180 lens</h6>
+<h5 id="specifications-of-rodenstock-hr-digaron-5.6180-lens">Specifications of Rodenstock HR Digaron 5.6/180 lens</h5>
 <p>Source: <a href="http://www.rodenstock-photo.com/mediabase/original/e_Rodenstock_Digital_Lenses_3-26__8236.pdf">Rodenstock180mmHRDigaron</a></p>
 <ul>
 <li>Focal length - 180 mm (fixed focal length)</li>
@@ -64,7 +68,7 @@
 <div class="figure">
 <img src="images/design_target_support2.png" alt="Fig: A better contraption then the current one" /><p class="caption"><em>Fig: A better contraption then the current one</em></p>
 </div>
-<h4 id="back-of-the-envelope-calculations">Back of the envelope calculations</h4>
+<h3 id="back-of-the-envelope-calculations">Back of the envelope calculations</h3>
 <pre class="sourceCode code python"><code>&gt;&gt;&gt; import iutils.exputils.imaging as eiu
 &gt;&gt;&gt; m = eiu.mag(180, u=3900)              
 &gt;&gt;&gt; m                                     # magnification (u = 3.9 m)
@@ -79,7 +83,7 @@
 &gt;&gt;&gt; display_px_obj_space = eiu.ppi2microns(ppi) # size of a display pixel
 &gt;&gt;&gt; display_px_obj_space
 117.5925925925926 </code></pre>
-<h5 id="target">Target</h5>
+<h4 id="target">Target</h4>
 <p>The target of point sources were generated using the code <code>\code\exp_14_09_psf_measure.py</code> and rendered on a Surface Pro 3 tablet (pixel size of 117.6 um). Each point source are essentially a spatial mixture of RGB values as shown in the image below:</p>
 <div class="figure">
 <img src="images/expt_psfmeasure_tgt_9_3_centered.png" alt="Fig: Point source target image (full size)" /><p class="caption"><em>Fig: Point source target image (full size)</em></p>
@@ -100,12 +104,12 @@
 <img src="images/expt_psfmeasurement_9_3_2_centerCropped.png" alt="Fig: Image of the central portion of the points sources. Sinar camera settings: ISO: 100; Time: 4 sec; Aperture: f/32" /><p class="caption"><em>Fig: Image of the central portion of the points sources. Sinar camera settings: ISO: 100; Time: 4 sec; Aperture: f/32</em></p>
 </div>
 <p>Note that the “aperture” value is the aperture set in the lens standard, and it doesn’t account for the image distance, i.e. it is not the relative aperture.</p>
-<h4 id="comments">Comments</h4>
+<h3 id="comments">Comments</h3>
 <ol style="list-style-type: decimal">
 <li>It is very evident from the above images, that the camera was not properly focused on the target. The blur is very clear in “PSF_Measurement_9_3_1”. In “PSF_Measurement_9_3_2”, the blur spot is smaller because of the use of smaller (f/32) aperture. Clearly, geometric effects are more evident than diffraction effects.</li>
 <li>The images are also very noisy (lack of enough light)</li>
 </ol>
-<h4 id="rectification-strategy">Rectification strategy</h4>
+<h3 id="rectification-strategy">Rectification strategy</h3>
 <ol style="list-style-type: decimal">
 <li>We must come up with a better way to focus. Using the “bar indicator” of CaptureShop for focusing is not sufficient.</li>
 <li>It seems that it is not necessary to perform the experiment at f/32. Most likely an aperture setting of f/16 or f/11 should be good enough for observing the nature of the PSF across the image plane.</li>
@@ -113,8 +117,8 @@
 <li>Need to do dark-frame subtraction.</li>
 <li>Should probably decrease the object distance by moving the camera forward. What about a distance of about 3 meters?</li>
 </ol>
-<h2 id="date-09-05-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-05-2014; Experiment: PSF measurement on tilted plane</h2>
-<h4 id="back-of-the-envelope-calculations-1">Back of the envelope calculations</h4>
+<h1 id="date-09-05-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-05-2014; Experiment: PSF measurement on tilted plane</h1>
+<h3 id="back-of-the-envelope-calculations-1">Back of the envelope calculations</h3>
 <pre class="sourceCode code python"><code>&gt;&gt;&gt; import iutils.exputils.imaging as eiu
 &gt;&gt;&gt; m = eiu.mag(180, u=3000)   # magnification (u=3m)
 &gt;&gt;&gt; m
@@ -123,7 +127,7 @@
 &gt;&gt;&gt; sensor_px_obj_space = sensor_px/m
 &gt;&gt;&gt; sensor_px_obj_space        # sensor pixel in object space
 94.00000000000001</code></pre>
-<h4 id="method-to-ensure-the-image-plane-lens-plane-object-plane-are-parallel">Method to ensure the image plane, lens plane &amp; object plane are parallel</h4>
+<h3 id="method-to-ensure-the-image-plane-lens-plane-object-plane-are-parallel">Method to ensure the image plane, lens plane &amp; object plane are parallel</h3>
 <p>At the start of the experiment, we need to ensure that the target plane, the lens plane and the sensor plane are parallel to each other. The lens plane and the image plane orientation can be set using the manual adjustment knows in the Sinar camera. In order make all the planes parallel, we mounted a small laser diode on an aluminum plane (see figures of contraption below), which was machined to fit appropriately on to the image standard. Another plastic plate, which was 3D printed, was attached to the front standard in place of the lens, and a diffuser alignment disk was attached at the center of the plate (see the figure). The configuration was such that the laser light would pass through the small hole in the center of the alignment disk only when the centers of the two standards were aligned. Then, the laser light path represented the virtual optical axis. Now, a small mirror was placed on the target surface that reflected the laser light back towards the camera. The orientation of the target plane was adjusted until the reflected laser light traced the incident path exactly.</p>
 <p>We also used the same laser point to place the target’s center approximately near the optical axis.</p>
 <p>The following images show the various contraptions made for the experiment:</p>
@@ -175,14 +179,14 @@
 <div class="figure">
 <img src="images/expt_psf_measurement_contraption_016.jpg" alt="Fig: The spot created by the reflected beam beside the alignment disk just before they are made coincident." /><p class="caption"><em>Fig: The spot created by the reflected beam beside the alignment disk just before they are made coincident.</em></p>
 </div>
-<h2 id="date-09-09-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-09-2014; Experiment: PSF measurement on tilted plane</h2>
-<h4 id="accessing-the-tiff-files-exported-by-sinars-captureshop-in-python">Accessing the TIFF files exported by Sinar’s CaptureShop in Python</h4>
+<h1 id="date-09-09-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-09-2014; Experiment: PSF measurement on tilted plane</h1>
+<h3 id="accessing-the-tiff-files-exported-by-sinars-captureshop-in-python">Accessing the TIFF files exported by Sinar’s CaptureShop in Python</h3>
 <p>The raw intensity data captured by the Sinar eVolution 86H digital back is stored in a Sinar-specific DNG file. DNG, which stands for “Digital Negative”, is an extension of the TIFF 6.0 format.</p>
 <p>We exported the DNG files to TIFF images using CaptureShop. However, when I tried to read the TIFF files using either PIL (Python Image Library) or the <code>imread()</code> method from the <code>scipy.misc</code> module, I get the following error:</p>
 <pre><code>raise IOError(&quot;cannot identify image file&quot;)
 IOError: cannot identify image file </code></pre>
 <p>Note that the <code>imread()</code> function from <code>scipy.misc</code> uses PIL to handle image file read/write; so it is not surprising that <code>imread()</code> fails.</p>
-<h5 id="building-christoph-gholkes-tifffile">Building Christoph Gholke’s tifffile</h5>
+<h4 id="building-christoph-gholkes-tifffile">Building Christoph Gholke’s tifffile</h4>
 <p>When I tried to build the c extension module using the command <code>python setup.py build_ext --inplace</code>, the build failed with the following output</p>
 <pre><code>error: Unable to find vcvarsall.bat</code></pre>
 <p>The above build failed because <code>distutils</code> couldn’t find <code>vcvarsall.bat</code>. As it turns out, Python 2.6, 2.7, and 3.1 (for Windows) are all built with VS 2008, and hence the extension modules for these versions of Python need Visual studio 2008 or Visual Studio Express 2008. See the following references which describes why the build failed.</p>
@@ -221,8 +225,10 @@ ValueError: [u&#39;path&#39;]</code></pre>
 <p>Luckily, I had a copy of Visual Studio 2008 Professional. I installed it with the “X64 compiler and tools” option enabled as shown in the figure below:</p>
 <p><img src="images/VC2008InstallationWithx86buildtools.png" alt="image" /></p>
 <p>After the installation, the build was successful.</p>
-<h2 id="date-09-11-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-11-2014; Experiment: PSF measurement on tilted plane</h2>
-<h4 id="focusing-strategy">Focusing strategy</h4>
+<hr />
+<p>Date: 09-11-2014</p>
+<hr />
+<h3 id="focusing-strategy">Focusing strategy</h3>
 <p>We found that using one of the point source images for visually measuring the degree of focus/misfocus is a good option (at least in the rigid camera configuration). We could clearly see the blur spot when the point sources were not completely in focus as shown in the following image.</p>
 <p><img src="images/FocusingStrategy_focusedvsd.jpg" alt="image" /></p>
 <p>Notice, the shape of the misfocused spots. They are overall circular in nature; however, this is also a “hint” of a pentagonal ring, cause by the blades of the lens shutter.</p>
@@ -232,7 +238,7 @@ ValueError: [u&#39;path&#39;]</code></pre>
 <li>Follow the manual focusing strategy of sinar camera –</li>
 </ol>
 <p>[TO DO!!! update focusing strategy for scheimpflug case]</p>
-<h5 id="standard-manual-focusing-strategy-of-sinar-p3-view-camera">Standard manual focusing strategy of Sinar P3 view camera</h5>
+<h4 id="standard-manual-focusing-strategy-of-sinar-p3-view-camera">Standard manual focusing strategy of Sinar P3 view camera</h4>
 <p>The following section is “copied” from the Sinar manual.</p>
 <p><em>The rear standard</em></p>
 <p>Always establish the plane of maximum sharpness before stopping down.</p>
@@ -251,13 +257,19 @@ ValueError: [u&#39;path&#39;]</code></pre>
 <li>Refocus with the ﬁne focusing drive <strong>2</strong> for maximum overall sharpness. Adjust the rear standard for any ﬁnal corrections to the plane of sharpness.</li>
 </ul>
 <p><img src="images/manual_focusing_sinar.jpg" alt="image" /></p>
-<h2 id="date-09-12-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-12-2014; Experiment: PSF measurement on tilted plane</h2>
+<hr />
+<p>Date: 09-12-2014</p>
+<hr />
 <p>Worked on the code to process the captured images and updated code for projecting patterns.</p>
-<h2 id="date-09-14-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-14-2014; Experiment: PSF measurement on tilted plane</h2>
+<hr />
+<p>Date: 09-14-2014</p>
+<hr />
 <p>We collected some data in tilted plane configuration; However, it seems that the supposed orientation of the object plane was mis-represented. Additionally, there was also about a degree of positive tilt of the image plane w.r.t. the lens plane.</p>
 <p>[TO DO: 1. Complete the description, 2. Contraption for measuring board tilt]</p>
-<h2 id="date-09-15-2014-experiment-psf-measurement-on-tilted-plane">Date: 09-15-2014; Experiment: PSF measurement on tilted plane</h2>
-<h3 id="a-closer-look-at-our-assumed-point-source">A closer look at our assumed “point source”</h3>
+<hr />
+<p>Date: 09-15-2014</p>
+<hr />
+<h2 id="a-closer-look-at-our-assumed-point-source">A closer look at our assumed “point source”</h2>
 <p>I am trying to create a point source by turning on a <strong>single</strong> pixel of a surface pro 3 tablet [Refer to the code <code>\patterns_for_psf_measure.py</code> in under <code>code\exp_14_09_psf_measure</code>].</p>
 <p>The following images show closeup view of the point source, taken with a high magnification lens. It is clear that I wasn’t really able to turn on EXACTLY ONE pixel!! It seems that 3 neighboring pixels are also turned on, albeit with much lesser intensity.</p>
 <p>This can happen due to either of the two reasons:</p>
@@ -275,7 +287,9 @@ a highly circular shape, in spite of the above structure of the display pixels.<
 <p>Using the scale, I was able to estimate the “size of a display-pixel” and the “size of a R/G/B color-site” in the following way:</p>
 <p>(In the following section, I shall refer to the physical pixel size of the display that I am using as point-source as “display-pixel” and the pixel in the images as “image-pixel” to avoid confusion.)</p>
 <p>I opened all the images in Adobe Photoshop, and measured the length of a millimeter in terms of the number of image-pixels, which as 637 image-pixels. Using the same scale, the length of a single display-pixel (containing R, G, &amp; B color sites) to be 75 image-pixels which corresponds to 117.74 microns. This is very close to 117 microns – the display-pixel size calculated from the PPI specifications of the display using back-of-the-envelope calculations (above). Dividing by 3, the width of an individual R/G/B element is about 40 microns. I also measured the height of an R/G/B photo-site to be about 94.2 microns.</p>
-<h6 id="date-09-16-2014">Date: 09-16-2014</h6>
+<hr />
+<p>Date: 09-16-2014</p>
+<hr />
 <p>As it turned out, it was the auto scaling on High DPI setting in Windows 8.1 (in my Surface Pro 3) that was causing this issue.</p>
 <p><img src="images/disable_high_dpi_scaling.jpg" alt="image" /></p>
 <p>Images of the pixel-sites after disabling high DPI scaling</p>
@@ -286,7 +300,7 @@ a highly circular shape, in spite of the above structure of the display pixels.<
 <div class="figure">
 <img src="images/displaypixel_green_no_scaling_surfacepro3.png" alt="Fig: Dimensions are about 94.2 microns by 40 microns." /><p class="caption"><em>Fig: Dimensions are about 94.2 microns by 40 microns.</em></p>
 </div>
-<h4 id="some-issuesquestions-that-needs-to-be-addressed-in-this-experimental-setup">Some issues/questions that needs to be addressed in this experimental setup</h4>
+<h3 id="some-issuesquestions-that-needs-to-be-addressed-in-this-experimental-setup">Some issues/questions that needs to be addressed in this experimental setup</h3>
 <ol style="list-style-type: decimal">
 <li>How does one ensure that the target rotates exactly through it’s intended central axis? Perhaps we must do some sort of “pose estimation” to estimate the axis of rotation of the plane.</li>
 </ol>
