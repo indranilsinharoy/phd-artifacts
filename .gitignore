@@ -52,13 +52,16 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
-# Directories to ignore
-
-
-code/exp_14_09_psf_measure/zmxfiles/tilted image plane.CFG
-code/exp_14_09_psf_measure/zmxfiles/tilted image plane.SES
-code/exp_14_09_psf_measure/.ipynb_checkpoints/AnalysisOfPSFImages-checkpoint.ipynb
+# Zemax files
 *.CFG
 *.SES
+
+# Directories to ignore
+.ipynb_checkpoints/
+code/scheimpflugimgmodel/.ipynb_checkpoints/
 code/exp_14_10_img_field_shift_restore/zmxfiles/None
+
+# Specific files
+code/exp_14_09_psf_measure/zmxfiles/tilted image plane.CFG
+code/exp_14_09_psf_measure/zmxfiles/tilted image plane.SES
 code/scheimpflugimgmodel/.ipynb_checkpoints/basicScheimpflugImgSimulation-checkpoint.ipynb
