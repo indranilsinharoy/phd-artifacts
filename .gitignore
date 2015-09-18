@@ -62,19 +62,19 @@ docs/_build/
 
 # Directories to ignore
 .ipynb_checkpoints/
-code/scheimpflugimgmodel/.ipynb_checkpoints/
-code/exp_14_09_psf_measure.ipynb_checkpoints/
+code/scheimpflugimgmodel//.ipynb_checkpoints/
+code/exp_14_09_psf_measure/.ipynb_checkpoints/
 code/exp_14_10_img_field_shift_restore/.ipynb_checkpoints/
-code/exp_14_10_img_field_shift_restore/zmxfiles/None
+
 
 # Specific files
 code/exp_14_09_psf_measure/zmxfiles/tilted image plane.CFG
 code/exp_14_09_psf_measure/zmxfiles/tilted image plane.SES
-code/scheimpflugimgmodel/.ipynb_checkpoints/basicScheimpflugImgSimulation-checkpoint.ipynb
-code/exp_14_09_psf_measure/.ipynb_checkpoints/Img_field_shift_lens_movements_in_scheimpflug-checkpoint.ipynb
 basicScheimpflugImgSimulation-checkpoint.ipynb
 Img_field_shift_lens_movements_in_scheimpflug-checkpoint.ipynb
 Img_field_shift_lens_movements_in_scheimpflug-checkpoint.ipynb
 Img_field_shift_lens_movements_in_scheimpflug-checkpoint.ipynb
 chapters/chapter03_geometricmodel/code/zmxfiles/None
-code/scheimpflugimgmodel/.ipynb_checkpoints/basicScheimpflugImgSimulation-checkpoint.ipynb
+code/exp_14_10_img_field_shift_restore/zmxfiles/None
+basicScheimpflugImgSimulation-checkpoint.ipynb
+
