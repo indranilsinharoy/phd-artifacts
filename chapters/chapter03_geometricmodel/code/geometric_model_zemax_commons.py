@@ -100,6 +100,27 @@ def set_surface_semidia(ln, surf, value=0):
     ln.zSetSolve(surf, ln.SOLVE_SPAR_SEMIDIA, ln.SOLVE_SEMIDIA_FIXED)
     ln.zSetSurfaceData(surfNum=surf, code=ln.SDAT_SEMIDIA, value=value)
 
+def insert_dummy_surface(ln, surf, thickness=0, semidia=0, comment='dummy'):
+    """helper function to insert dummy surface 
+
+    Parameters
+    ---------- 
+    ln : object 
+        pyzdde object 
+    surf : integer
+        surface number at which to insert the dummy surface 
+    thickness : real, optional
+        thickness of the surface 
+    semidia : real, optional 
+        semi diameter of the surface 
+    comment : string, optional
+        comment on the surface 
+    """
+    ln.zInsertSurface(surf)
+    ln.zSetSurfaceData(surf, ln.SDAT_COMMENT, comment)
+    ln.zSetSurfaceData(surf, ln.SDAT_THICK, thickness)
+    set_surface_semidia(ln, surf, semidia)
+
 
 def draw_plane(ln, space='img', dist=0, surfName=None, semiDia=None):
     """function to draw planes at the points specified by "dist"
@@ -135,14 +156,15 @@ def draw_plane(ln, space='img', dist=0, surfName=None, semiDia=None):
     """
     numSurf = ln.zGetNumSurf()
     inSurfPos = numSurf if space=='img' else 2 # assuming that the first surface will be a dummy surface
-    ln.zInsertSurface(inSurfPos)
-    comment, thickness, ignoreSurface = 1, 3, 20
-    ln.zSetSurfaceData(inSurfPos, comment, 'dummy')
-    ln.zSetSurfaceData(inSurfPos, thickness, dist)
-    set_surface_semidia(ln, inSurfPos, 0)
+    insert_dummy_surface(ln, inSurfPos, dist, 0, 'dummy')
+    #ln.zInsertSurface(inSurfPos)
+    #comment, thickness, ignoreSurface = 1, 3, 20
+    #ln.zSetSurfaceData(inSurfPos, comment, 'dummy')
+    #ln.zSetSurfaceData(inSurfPos, thickness, dist)
+    #set_surface_semidia(ln, inSurfPos, 0)
     #ln.zSetSurfaceData(inSurfPos, ignoreSurface, 1) # can't use this because the thickness will be ignored.
     ln.zInsertSurface(inSurfPos+1)
-    ln.zSetSurfaceData(inSurfPos+1, comment, surfName)
+    ln.zSetSurfaceData(inSurfPos+1, ln.SDAT_COMMENT, surfName)
     if semiDia:
         set_surface_semidia(ln, inSurfPos+1, semiDia)
     thickSolve, pickupSolve = 1, 5
@@ -221,7 +243,7 @@ def get_cardinal_points(ln, firstDummySurfOff):
     pyz._deleteFile(textFileName)
     return fpObj - firstDummySurfOff, fpImg, ppObj - firstDummySurfOff, ppImg
       
-def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, push=True):
+def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, push=True):
     """function to insert the pupil and cardianl planes in the LDE. 
 
     The layout will display all the surfaces.
@@ -233,6 +255,8 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, push=True):
     firstDummySurfOff : float, optional 
         the thickness of the first dummy surface (see Notes in the
         docstring of ``get_cardinal_points()``)
+    cardinalSemiDia : float, optional 
+        semidiameter of the cardinal surfaces. (Default=1.2) 
     push : bool
         push lens in the DDE server to the LDE
         
@@ -262,11 +286,23 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, push=True):
     ln.zSetWave(1, 0.55, 1)
     # insert dummy surface at 1 for showing the input ray
     ln.zRemoveVariables()
-    ln.zInsertSurface(1)
-    comment, thickness, thickVal = 1, 3, firstDummySurfOff
-    ln.zSetSurfaceData(1, thickness, thickVal)
-    ln.zSetSurfaceData(1, comment, 'dummy 2 c rays')
-    set_surface_semidia(ln, 1, 0)
+    # before inserting surface check to see if the object is at finite 
+    # distance. If the object is at finite distance, inserting a dummy 
+    # surface with finite thickness will change the image plane distance.
+    # so first decrease the thickness of the object surface by the 
+    # thickness of the dummy surface
+    objDist = ln.zGetSurfaceData(surfNum=0, code=ln.SDAT_THICK)
+    assert firstDummySurfOff < objDist, ("dummy surf. thick ({}) must be < "
+                                         "than obj dist ({})!".format(firstDummySurfOff, objDist))
+    if objDist < 1.0E+10:
+        ln.zSetSurfaceData(surfNum=0, code=ln.SDAT_THICK, value=objDist - firstDummySurfOff)
+    
+    insert_dummy_surface(ln, surf=1, thickness=firstDummySurfOff, semidia=0, comment='dummy 2 c rays')
+    #ln.zInsertSurface(1)
+    #comment, thickness, thickVal = 1, 3, firstDummySurfOff
+    #ln.zSetSurfaceData(1, thickness, thickVal)
+    #ln.zSetSurfaceData(1, comment, 'dummy 2 c rays')
+    #set_surface_semidia(ln, 1, 0)
     #origImgSurfNum = ln.zGetNumSurf()
     
     # Draw Exit and Entrance pupil planes
@@ -281,11 +317,11 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, push=True):
     # Get and draw the Principal planes
     fpObj, fpImg, ppObj, ppImg = get_cardinal_points(ln, firstDummySurfOff)
     print("Focal plane obj: ", fpObj, "\nFocal plane img: ", fpImg)
-    draw_plane(ln,'img', fpImg, "F'", 1.2)
-    draw_plane(ln,'obj', fpObj, "F", 1.2)
+    draw_plane(ln,'img', fpImg, "F'", cardinalSemiDia)
+    draw_plane(ln,'obj', fpObj, "F", cardinalSemiDia)
     print("Principal plane obj: ", ppObj, "\nPrincipal plane img: ", ppImg)
-    draw_plane(ln,'img', ppImg, "H'")
-    draw_plane(ln,'obj', ppObj, "H")
+    draw_plane(ln,'img', ppImg, "H'", cardinalSemiDia)
+    draw_plane(ln,'obj', ppObj, "H", cardinalSemiDia)
 
     # Check the validity of the distances
     ppObjToEnpp = ppObj - enpp
@@ -301,6 +337,57 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, push=True):
     ppImgTofpImg = ppImg - fpImg
     print("Principal plane H' to rear focal plane: ", ppObjTofpObj)
     print("Principal plane H to front focal plane: ", ppImgTofpImg)
+    if push:
+        ln.zPushLens(1)
+
+def insert_cbs_to_tilt(ln, pivot='ENPP', push=True):
+    """function to insert appropriate coordinate breaks and dummy surfaces 
+    in the LDE for tilting the lens a pivot. 
+
+    The layout will display all the surfaces.
+    
+    Parameters
+    ----------
+    ln : object
+        pyzdde object
+    pivot : string, optional 
+        indicate the surface about which to rotate. Currently only ENPP 
+        has been implemented
+    push : bool
+        push lens in the DDE server to the LDE
+
+    Returns
+    ------- 
+    None 
+
+    Assumptions
+    -----------
+    Surface 0 is the object surface. 
+    Surface 1 is a dummy surface for seeing ray visibility.
+    A dummy surface will be inserted at Surface 2 to move the CB to the pivot 
+    """
+    ln.zRemoveVariables()
+    # check set global reference surface to 0 if it is not!
+    sys = ln.zGetSystem()
+    if sys.globalRefSurf:
+        print(("Setting global reference surface from {} to 0. Will be restored."
+               .format(sys.globalRefSurf)))
+        ln.zSetSystem(unitCode=sys.unitCode, stopSurf=sys.stopSurf, 
+                      rayAimingType=sys.rayAimingType, globalRefSurf=0)
+
+    if pivot=='ENPP':
+        enpp = ln.zGetPupil().ENPP # distance of entrance pupil from surface 1
+        insert_dummy_surface(ln, surf=2, thickness=enpp, semidia=0, 
+                             comment='dummy to move to pivot pos')
+
+
+    else:
+        raise NotImplementedError("Option not Implemented.")
+    # Restore Global Reference surface if it was changed.
+    if sys.globalRefSurf:
+        print("Restoring global reference surface to {}".format(sys.globalRefSurf))
+        ln.zSetSystem(unitCode=sys.unitCode, stopSurf=sys.stopSurf, 
+                      rayAimingType=sys.rayAimingType, globalRefSurf=sys.globalRefSurf) 
     if push:
         ln.zPushLens(1)
 
