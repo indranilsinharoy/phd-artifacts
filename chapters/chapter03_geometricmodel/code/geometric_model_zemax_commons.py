@@ -14,8 +14,11 @@
 '''
 from __future__ import division, print_function
 import os
+import numpy as np
 import collections as co
-import pyzdde.zdde as pyz 
+import pyzdde.zdde as pyz
+import pyzdde.arraytrace as at 
+import matplotlib.pyplot as plt  
 
 
 #%% Basic geometric-optics functions
@@ -132,11 +135,12 @@ def draw_plane(ln, space='img', dist=0, surfName=None, semiDia=None):
     space : string (`img` or `obj`), optional
         image space or object space in which the plane is specified. 'img' for 
         image space, 'obj' for object space. This info is required because 
-        Zemax returns distances that are measured w.r.t. surface 1 in object
-        space, and w.r.t. IMG in image space. See the Assumptions.
+        Zemax returns distances that are measured w.r.t. surface 1 (@LDE) in 
+        object space, and w.r.t. IMG in image space. See the Assumptions.
     dist : float, optional
-        distance along the optical axis of the plane from the 1st surface if 
-        `space` is `obj` else from the IMG surface. 
+        distance along the optical axis of the plane from surface 2 (@LDE) if 
+        `space` is `obj` else from the IMG surface. This assumes that surface 1
+        is a dummy surface
     surfName : string, optional
         name to identify the surf in the LDE, added to the comments column
     semiDia : real, optional
@@ -148,21 +152,15 @@ def draw_plane(ln, space='img', dist=0, surfName=None, semiDia=None):
     
     Assumptions (important to read)
     -------------------------------
-    The function assumes (for the purpose of this study) that surface 1 is a dummy 
-    surface at certain distance away from the first lens surface. Doing this will 
-    enable the rays entering the lens to be visible in the Zemax layout plots even 
-    if the object is at infinity. So the function inserts the planes (and their 
-    associated dummy surfaces) at surface 2.
+    The function assumes (for the purpose of this study) that surface 1 @ LDE is 
+    a dummy surface at certain distance preceding the first actual lens surface. 
+    This enables the rays entering the lens to be visible in the Zemax layout 
+    plots even if the object is at infinity. So the function inserts the planes 
+    (and their associated dummy surfaces) beginning at surface 2.
     """
     numSurf = ln.zGetNumSurf()
     inSurfPos = numSurf if space=='img' else 2 # assuming that the first surface will be a dummy surface
     insert_dummy_surface(ln, inSurfPos, dist, 0, 'dummy')
-    #ln.zInsertSurface(inSurfPos)
-    #comment, thickness, ignoreSurface = 1, 3, 20
-    #ln.zSetSurfaceData(inSurfPos, comment, 'dummy')
-    #ln.zSetSurfaceData(inSurfPos, thickness, dist)
-    #set_surface_semidia(ln, inSurfPos, 0)
-    #ln.zSetSurfaceData(inSurfPos, ignoreSurface, 1) # can't use this because the thickness will be ignored.
     ln.zInsertSurface(inSurfPos+1)
     ln.zSetSurfaceData(inSurfPos+1, ln.SDAT_COMMENT, surfName)
     if semiDia:
@@ -171,47 +169,38 @@ def draw_plane(ln, space='img', dist=0, surfName=None, semiDia=None):
     frmSurf, scale, offset, col = inSurfPos, -1, 0, 0
     ln.zSetSolve(inSurfPos+1, thickSolve, pickupSolve, frmSurf, scale, offset, col)
 
-def get_cardinal_points(ln, firstDummySurfOff):
-    """returns the distances of the cardinal points (along the optical axis)
+def get_cardinal_points(ln):
+    """Returns the distances of the cardinal points (along the optical axis)
     
     Parameters
     ----------
     ln : object
         PyZDDE object
-    firstDummySurfOff : float
-        the thickness of the dummy surface, which is generally the
-        surface 1. See the Notes.
     
     Returns
     -------
     fpObj : float
-        distance of object side focal point from surface 2 (assuming surface)
-        1 is dummy
+        distance of object side focal point from surface 1 in the LDE, 
+        irrespective of which surface is defined as the global reference  
     fpImg : float
         distance of image side focal point from IMG surface
     ppObj : float
-        distance of the object side principal plane from surface 2
+        distance of the object side principal plane from surface 1 in the 
+        LDE, irrespective of which surface is defined as the global 
+        reference surface 
     ppImg : float
         distance of the image side principal plane from IMG
     
-    
     Notes
     -----
-    The "dummy surface" referred to in this function is particular to 
-    this local study of cardinal points. A dummy surface in position 1 
-    is used to show the input rays to the left of the first optical 
-    surface.
+    1. The data is consistant with the cardinal data in the Prescription file
+       in which, the object side data is with respect to the first surface in the LDE. 
+    2. If there are more than one wavelength, then the distances are averaged.  
     """
     zmxdir = os.path.split(ln.zGetFile())[0]
     textFileName = os.path.join(zmxdir, "tmp.txt") 
     sysProp = ln.zGetSystem()
     numSurf = sysProp.numSurf
-    # Since the object space cardinal points are reported w.r.t. the 
-    # surface 1, ensure that surface 1 is global reference surface 
-    if sysProp.globalRefSurf is not 1: 
-        ln.zSetSystem(unitCode=sysProp.unitCode, stopSurf=sysProp.stopSurf, 
-                      rayAimingType=sysProp.rayAimingType, temp=sysProp.temp, 
-                      pressure=sysProp.pressure, globalRefSurf=1)
     ln.zGetTextFile(textFileName, 'Pre', "None", 0)
     line_list = pyz._readLinesFromFile(pyz._openFile(textFileName))
     ppObj, ppImg, fpObj, fpImg = 0.0, 0.0, 0.0, 0.0
@@ -234,27 +223,22 @@ def get_cardinal_points(ln, firstDummySurfOff):
         fpImg = fpImg/count
         ppObj = ppObj/count
         ppImg = ppImg/count
-    if sysProp.globalRefSurf is not 1:
-        ln.zSetSystem(unitCode=sysProp.unitCode, stopSurf=sysProp.stopSurf, 
-                      rayAimingType=sysProp.rayAimingType, temp=sysProp.temp, 
-                      pressure=sysProp.pressure, 
-                      globalRefSurf=sysProp.globalRefSurf)
-    # Delete the temporary file
+    # # Delete the temporary file
     pyz._deleteFile(textFileName)
-    return fpObj - firstDummySurfOff, fpImg, ppObj - firstDummySurfOff, ppImg
+    cardinals = co.namedtuple('cardinals', ['Fo', 'Fi', 'Ho', 'Hi'])
+    return cardinals(fpObj, fpImg, ppObj, ppImg)
       
 def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, push=True):
-    """function to insert the pupil and cardianl planes in the LDE. 
-
-    The layout will display all the surfaces.
+    """Insert paraxial pupil and cardinal planes surfaces in the LDE for rendering in
+    layout plots.
     
     Parameters
     ----------
     ln : object
         pyzdde object
     firstDummySurfOff : float, optional 
-        the thickness of the first dummy surface (see Notes in the
-        docstring of ``get_cardinal_points()``)
+        the thickness of the first dummy surface. This first dummy surface is 
+        inserted by this function. See Notes.
     cardinalSemiDia : float, optional 
         semidiameter of the cardinal surfaces. (Default=1.2) 
     push : bool
@@ -267,20 +251,22 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, pu
     
     Notes
     -----
-    The cardinal and pupil planes are drawn using standard surfaces in the LDE. 
-    To ensure that the ray-tracing engine does not treat these surfaces as real 
-    surfaces, we need to instruct Zemax to "ignore" rays to these surfaces. 
-    Unfortunately, we cannot do it programmatically. So, after the planes have 
-    been drawn, we need to manually do the following:
-    
-    1. 2D Layout settings
-        a. Set number of rays to 1 or as needed
-    2. For the pupil (ENPP and EXPP) and cardinal surfaces (H, H', F, F'), 
-       go to "Surface Properties" >> Draw tab
-        a. Select "Skip rays to this surface" 
-    3. Set field points to be symmetric about the optical axis
-
-    Also, for clarity, the semi-diameters of dummy sufaces are set to zero.
+    1. 'first dummy surface' is a dummy surface in LDE position 1 (between the 
+        OBJ and the actual first lens surface) whose function is show the input 
+        rays to the left of the first optical surface.
+    2. The cardinal and pupil planes are drawn using standard surfaces in the LDE. 
+       To ensure that the ray-tracing engine does not treat these surfaces as real 
+       surfaces, we need to instruct Zemax to "ignore" rays to these surfaces. 
+       Unfortunately, we cannot do it programmatically. So, after the planes have 
+       been drawn, we need to manually do the following:
+           1. 2D Layout settings
+               a. Set number of rays to 1 or as needed
+           2. For the pupil (ENPP and EXPP) and cardinal surfaces (H, H', F, F'), 
+              and the dummy surfaces (except for the dummy surface named "dummy 2 
+              c rays" go to "Surface Properties" >> Draw tab
+               a. Select "Skip rays to this surface" 
+           3. Set field points to be symmetric about the optical axis
+    3. For clarity, the semi-diameters of the dummy sufaces are set to zero.
     """
     ln.zSetWave(0, 1, 1)
     ln.zSetWave(1, 0.55, 1)
@@ -298,30 +284,27 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, pu
         ln.zSetSurfaceData(surfNum=0, code=ln.SDAT_THICK, value=objDist - firstDummySurfOff)
     
     insert_dummy_surface(ln, surf=1, thickness=firstDummySurfOff, semidia=0, comment='dummy 2 c rays')
-    #ln.zInsertSurface(1)
-    #comment, thickness, thickVal = 1, 3, firstDummySurfOff
-    #ln.zSetSurfaceData(1, thickness, thickVal)
-    #ln.zSetSurfaceData(1, comment, 'dummy 2 c rays')
-    #set_surface_semidia(ln, 1, 0)
-    #origImgSurfNum = ln.zGetNumSurf()
-    
+    ln.zGetUpdate()
     # Draw Exit and Entrance pupil planes
+    print("Textual information about the planes:\n")
     expp = ln.zGetPupil().EXPP
     print("Exit pupil distance from IMG:", expp)
     draw_plane(ln, 'img', expp, "EXPP")
     
     enpp = ln.zGetPupil().ENPP
-    print("Entrance pupil from Surf 1:", enpp)
-    draw_plane(ln, 'obj', enpp, "ENPP")
+    print("Entrance pupil from Surf 1 @ LDE:", enpp)
+    draw_plane(ln, 'obj', enpp - firstDummySurfOff, "ENPP")
 
     # Get and draw the Principal planes
-    fpObj, fpImg, ppObj, ppImg = get_cardinal_points(ln, firstDummySurfOff)
-    print("Focal plane obj: ", fpObj, "\nFocal plane img: ", fpImg)
+    fpObj, fpImg, ppObj, ppImg = get_cardinal_points(ln)
+
+    print("Focal plane obj F from surf 1 @ LDE: ", fpObj, "\nFocal plane img F' from IMA: ", fpImg)
     draw_plane(ln,'img', fpImg, "F'", cardinalSemiDia)
-    draw_plane(ln,'obj', fpObj, "F", cardinalSemiDia)
-    print("Principal plane obj: ", ppObj, "\nPrincipal plane img: ", ppImg)
+    draw_plane(ln,'obj', fpObj - firstDummySurfOff, "F", cardinalSemiDia)
+    
+    print("Principal plane obj H from surf 1 @ LDE: ", ppObj, "\nPrincipal plane img H' from IMA: ", ppImg)
     draw_plane(ln,'img', ppImg, "H'", cardinalSemiDia)
-    draw_plane(ln,'obj', ppObj, "H", cardinalSemiDia)
+    draw_plane(ln,'obj', ppObj - firstDummySurfOff, "H", cardinalSemiDia)
 
     # Check the validity of the distances
     ppObjToEnpp = ppObj - enpp
@@ -331,25 +314,38 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, pu
     print("Principal plane H to ENPP: ", ppObjToEnpp)
     print("Principal plane H' to EXPP: ", ppImgToExpp)
     v = gaussian_lens_formula(u=ppObjToEnpp, v=None, f=focal).v
-    print("Principal plane H' to EXPP (absolute distance) "
-          "calculated using lens equation: ", abs(v))
+    print("Principal plane H' to EXPP (abs.) "
+          "calc. using lens equ.: ", abs(v))
     ppObjTofpObj = ppObj - fpObj
     ppImgTofpImg = ppImg - fpImg
     print("Principal plane H' to rear focal plane: ", ppObjTofpObj)
     print("Principal plane H to front focal plane: ", ppImgTofpImg)
+    print(("""\nCheck "Skip rays to this surface" under "Draw Tab" of the """
+           """surface property for the dummy and cardinal plane surfaces. """
+           """See Docstring Notes for details."""))
     if push:
         ln.zPushLens(1)
 
-def insert_cbs_to_tilt(ln, pivot='ENPP', push=True):
-    """function to insert appropriate coordinate breaks and dummy surfaces 
+def insert_cbs_to_tilt_lens(ln, lastSurf, firstSurf=2, pivot='ENPP', push=True):
+    """function to insert appropriate coordinate break and dummy surfaces 
     in the LDE for tilting the lens a pivot. 
 
-    The layout will display all the surfaces.
+    The layout will display all the surfaces. This function is needed inspite
+    of the ln.zTiltDecenterElements() function because we all the cardinal  
+    and associated dummy surfaces in between, and the pivot point is generally 
+    not about the lens surface. 
     
     Parameters
     ----------
     ln : object
         pyzdde object
+    lastSurf : integer
+        the last surface that the tilt coordinate-break should include. This 
+        surface is normally the image side principal plane surface H' 
+    firstSurf : integer, optional, default=2
+        the first surface which the tilt coordinate-break should include. 
+        Generally, this surface is 2 (the dummy surface preceding the 
+        object side principal plane H)    
     pivot : string, optional 
         indicate the surface about which to rotate. Currently only ENPP 
         has been implemented
@@ -358,38 +354,200 @@ def insert_cbs_to_tilt(ln, pivot='ENPP', push=True):
 
     Returns
     ------- 
-    None 
+    cbs : 2-tuple of integers 
+        the first and the second coordinate breaks. Also, if `push` is True, 
+        then the LDE will be updated  
 
-    Assumptions
-    -----------
-    Surface 0 is the object surface. 
-    Surface 1 is a dummy surface for seeing ray visibility.
-    A dummy surface will be inserted at Surface 2 to move the CB to the pivot 
+    Notes
+    ----- 
+    1. A dummy surface will be inserted at Surface 2 to move the CB to the 
+       pivot point.
+    2. Check "skip rays to this surface" for the first and last dummy surfaces 
+       inserted by this function.
+
+    Assumptions (weak)
+    -----------------
+    The following assumptions need not be strictly followed.
+    1. Surface 0 is the object surface which may or may not be infinity 
+    2. Surface 1 is a dummy surface for seeing ray visibility.  
     """
     ln.zRemoveVariables()
-    # check set global reference surface to 0 if it is not!
-    sys = ln.zGetSystem()
-    if sys.globalRefSurf:
-        print(("Setting global reference surface from {} to 0. Will be restored."
-               .format(sys.globalRefSurf)))
-        ln.zSetSystem(unitCode=sys.unitCode, stopSurf=sys.stopSurf, 
-                      rayAimingType=sys.rayAimingType, globalRefSurf=0)
+    gRefSurf = ln.zGetSystem().globalRefSurf
+    assert ln.zGetSurfaceData(gRefSurf, ln.SDAT_THICK) < 10e10, 'Change global ref' 
 
     if pivot=='ENPP':
+        # estimate the distance from the firstSurf to ENPP
         enpp = ln.zGetPupil().ENPP # distance of entrance pupil from surface 1
-        insert_dummy_surface(ln, surf=2, thickness=enpp, semidia=0, 
-                             comment='dummy to move to pivot pos')
-
+        enppInGRef = ln.zOperandValue('GLCZ', 1) + enpp
+        firstSurfInGRef = ln.zOperandValue('GLCZ', firstSurf)
+        firstSurfToEnpp = enppInGRef - firstSurfInGRef
+        # insert dummy surface to move to the pivot position where the CB 
+        # will be applied 
+        insert_dummy_surface(ln, surf=firstSurf, thickness=firstSurfToEnpp, 
+                             semidia=0, comment='Move to ENPP')
+        # insert coordinate breaks
+        cb1, cb2, _ = ln.zTiltDecenterElements(firstSurf=firstSurf+1, lastSurf=lastSurf+1, 
+                                               cbComment1='Lens tilt CB',
+                                               cbComment2='Lens restore CB', 
+                                               dummySemiDiaToZero=True)
+        # set solve on cb1 surface to move back to firstSurf
+        ln.zSetSolve(firstSurf+1, ln.SOLVE_SPAR_THICK, ln.SOLVE_THICK_PICKUP, 
+                     firstSurf, -1.0, 0.0, 0)
 
     else:
         raise NotImplementedError("Option not Implemented.")
-    # Restore Global Reference surface if it was changed.
-    if sys.globalRefSurf:
-        print("Restoring global reference surface to {}".format(sys.globalRefSurf))
-        ln.zSetSystem(unitCode=sys.unitCode, stopSurf=sys.stopSurf, 
-                      rayAimingType=sys.rayAimingType, globalRefSurf=sys.globalRefSurf) 
+
     if push:
         ln.zPushLens(1)
+
+    return (cb1, cb2)
+
+
+def show_grid_distortion(n=11):
+    """Plots intersection points of an array of real chief rays and paraxial
+    chief rays from the object field with the image surface. 
+    
+    Rays are traced on the lens in the LDE (and not in the DDE server). The 
+    paraxial chief ray intersection points forms the reference field. Comparing 
+    the two fields gives a sense of the distortion.  
+    
+    Parameters
+    ----------
+    n : integer, optional
+        number of field points along each x- and y-axis. Total number
+        of rays traced equals n**2
+    
+    Returns
+    -------
+    None
+        A matplotlib scatter plot displays the intersection points, against
+        the paraxial intersection points of the chief ray on that specified 
+        surface. Therefore, the plot shows the distortion in the system. 
+
+    Notes
+    -----
+    1. The reference field in Zemax's Grid Distortion plot is generated by 
+       tracing a real chief ray very close to the optical axis, and then 
+       scaling appropriately. 
+    2. TODO: 
+       1. Show rays that are vignetted.    
+    """
+    xPara, yPara, _, _, _     = get_chief_ray_intersects(n, False)
+    xReal, yReal, _, err, vig = get_chief_ray_intersects(n, True)
+    # plot
+    fig, ax = plt.subplots(1, 1, figsize=(6,6), dpi=120)
+    ax.scatter(xPara, yPara, marker='o', s=10, facecolors='none', edgecolors='b', 
+               alpha=0.8, zorder=12)
+    ax.scatter(xReal, yReal, marker='x', s=40, c='r', alpha=0.9, zorder=15)
+    # these two lines is dependent on the way the hx, hy grid is created in the 
+    # function get_chief_ray_intersects()
+    xGridPts = xPara[:n]
+    yGridPts = yPara[::n] 
+    ax.vlines(xGridPts, ymin=min(yGridPts), ymax=max(yGridPts), 
+              zorder=2, colors='#CFCFCF', lw=0.8)
+    ax.hlines(yGridPts, xmin=min(xGridPts), xmax=max(xGridPts), 
+              zorder=2, colors='#CFCFCF', lw=0.8)
+    ax.set_aspect('equal')
+    ax.axis('tight')
+    plt.show()
+
+
+def get_chief_ray_intersects(n=11, real=True, surf=-1):
+    """Returns the points of intersection of the chief rays from the 
+    object field (normalized) with the specified surface. 
+
+    Parameters
+    ----------
+    n : integer, optional
+        number of field points along each x- and y-axis. Total number
+        of rays traced equals n**2
+    real : bool, optional 
+        If `True` (default) then real chief rays are traced, 
+        If `False`, then paraxial chief rays are traced 
+    surf : integer, optional
+        surface number. -1 (default) indicates image plane
+    
+
+    Notes
+    ----- 
+    TODO: 
+    1. How to handle errors that occurs during the ray tracing.
+    2. The function seems to work only if the field normalization is set 
+       to "radial". Need to fix it for rectangular field normalization. 
+    """
+    # create uniform square grid in normalized field coordinates
+    nx = np.linspace(-1, 1, n)
+    hx, hy = np.meshgrid(nx, nx)
+    hx = hx.flatten().tolist()
+    hy = hy.flatten().tolist()
+    
+    # trace the ray
+    mode = 0 if real else 1
+    rayData = at.zGetTraceArray(numRays=n**2, hx=hx, hy=hy, mode=mode, surf=surf)
+
+    # parse ray traced data
+    err = rayData[0]
+    vig = rayData[1]
+    x, y, z = rayData[2], rayData[3], rayData[4]
+
+    return x, y, z, err, vig 
+
+def plot_chiefray_intersects(ln, cb, tiltXY):
+    """plot chiefray intersects for various rotations of the lens
+    about a pivot point
+    
+    Parameters
+    ----------
+    ln : object
+        pyzdde object
+    cb : integer 
+        Element tilt coordinate break (the first CB) surface number 
+    tiltXY : list of 2-tuples
+        each element of the list is a tuple containing the tilt-about-x 
+        angle, tilt-about-y angle in degrees of the lens about a 
+        pivot point.
+        e.g. tiltXY = [(0,0), (10, 0), (0, 10)]
+        Max length = 6
+        
+    Returns
+    -------
+    None : plot
+    """
+    tiltAbtXParaNum = 3
+    tiltAbtYParaNum = 4
+    cols = ['b', 'r', 'g', 'm', 'c', 'y']
+    mkrs = ['o', 'x', '+', '1', '2', '3']
+    n = 11
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8), dpi=120)
+    for i, angle in enumerate(tiltXY):
+        ln.zSetSurfaceParameter(surfNum=cb, param=tiltAbtXParaNum, value=angle[0])
+        ln.zSetSurfaceParameter(surfNum=cb, param=tiltAbtYParaNum, value=angle[1])
+        ln.zGetUpdate()
+        # push lens into the LDE as array tracing occurs in the LDE
+        ln.zPushLens(1)
+        x, y, _, err, vig = get_chief_ray_intersects(n=n, real=True)
+        legTxt = r'$\alpha_x, \alpha_y = {}^o,{}^o$'.format(angle[0], angle[1])
+        if i:
+            ax.scatter(x, y, marker=mkrs[i], s=40, c=cols[i], alpha=0.9, zorder=15, 
+                       label=legTxt)
+        else:
+            ax.scatter(x, y, marker=mkrs[i], s=10, facecolors='none', 
+                       edgecolors=cols[i], alpha=0.8, zorder=12, label=legTxt)
+            xGridPts = x[:n]
+            yGridPts = y[::n] 
+            ax.vlines(xGridPts, ymin=min(yGridPts), ymax=max(yGridPts), 
+                      zorder=2, colors='#CFCFCF', lw=0.8)
+            ax.hlines(yGridPts, xmin=min(xGridPts), xmax=max(xGridPts), 
+                      zorder=2, colors='#CFCFCF', lw=0.8)
+    ax.set_aspect('equal')
+    ax.axis('tight')
+    ax.set_ylabel(r'$\bf{y}\,\it{(mm)}$', fontsize=15)
+    ax.set_xlabel(r'$\bf{x}\,\it{(mm)}$', fontsize=15)
+    ax.legend(fontsize=14, scatterpoints=1, markerscale=1., scatteryoffsets=[0.5], mode='expand',
+              ncol=len(tiltXY), loc='upper left', bbox_to_anchor=(0.09, 0.965, 0.84, 0.005), 
+              bbox_transform=fig.transFigure, handletextpad=0.5, handlelength=0.9)
+    plt.show()
+    
 
 if __name__ == '__main__':
     pass

@@ -1,0 +1,68 @@
+king queen jack image
+======================
+
+width x height pixels
+---------------------
+Each card is   656 x 1012 pixels 
+
+In physical units real cards are 
+89 mm (height) = 1012 pixels
+64 mm = (1012/89)*64 = 728 pixels
+
+
+Calculation of sensor dimensions for image simulation
+-----------------------------------------------------
+* Paraxial magnification = 0.02459016393 @ object 1000 mm away from lens vertex in sharp focus
+
+* Least dimension of sensor = 4.54 x 3.46 mm (width by height)
+
+* Largest image: at OBJ distance of 800 mm (thickness = 760), the magnification is |0.0309|, therefore, the minimum sensor size = 2.8 mm by 6 mm.
+
+Image Simulation Settings
+=========================
+
+Field Settings
+--------------
+Object Height
+
+    X-Field     Y-Field
+1.      0           0
+2.      0           250
+3.      0          -250
+4.     70            0
+5.    -70            0  
+
+Source Bitmap Settings
+----------------------
+Field Height: 89 (mm)
+
+
+Convolution Grid Settings
+-------------------------
+Pupil Sampling: 64x64
+Image Sampling: 64x64
+Checked Apply Fixed Apertures
+Checked Use Relative Illumination
+Aberrations: Diffraction
+
+Detector and Display Settings
+-----------------------------
+Reference: Vertex   <-- Important
+Pixel Size: 0.004
+X Pixels: 1550
+Y Pixels: 760
+
+
+Output File:
+------------
+xxx_output.png
+
+
+
+Single paraxial lens
+--------------------
+
+Fronto parallel configuration
+Sharp focus distance, OBJ thickness = 960 mm
+Blur, near distance = 760 mm
+Blur, far distance = 1160 mm
