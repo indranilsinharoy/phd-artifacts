@@ -66,3 +66,12 @@ Fronto parallel configuration
 Sharp focus distance, OBJ thickness = 960 mm
 Blur, near distance = 760 mm
 Blur, far distance = 1160 mm
+
+
+
+image delta: -0.100368016059
+ensqSpotImg 34.2693328
+image delta: 0.152104106811
+ensqSpotImg 51.7320632
+image delta: 0
+ensqSpotImg 3.4294144
