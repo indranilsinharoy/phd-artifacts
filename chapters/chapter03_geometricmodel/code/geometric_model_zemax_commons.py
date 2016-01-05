@@ -21,6 +21,7 @@ import pyzdde.arraytrace as at
 import matplotlib.pyplot as plt  
 import h5py as hdf
 import time as time 
+from scipy.misc import imsave 
 
 
 #%% Basic geometric-optics functions
@@ -469,6 +470,18 @@ def get_chief_ray_intersects(n=11, real=True, surf=-1):
     surf : integer, optional
         surface number. -1 (default) indicates image plane
     
+    Returns
+    ------- 
+    x : ndarray float32
+        x-intersects of the chief rays with `surf`
+    y : ndarray of float32
+        y-intersects of the chief rays with `surf`
+    z : ndarray of float32
+        z-incersects of the chief rays with `surf`
+    err : ndarray of int16
+        error code
+    vig : ndarray of uint8
+        vignetting code 
 
     Notes
     ----- 
@@ -488,15 +501,15 @@ def get_chief_ray_intersects(n=11, real=True, surf=-1):
     rayData = at.zGetTraceArray(numRays=n**2, hx=hx, hy=hy, mode=mode, surf=surf)
 
     # parse ray traced data
-    err = rayData[0]
-    vig = rayData[1]
-    x, y, z = rayData[2], rayData[3], rayData[4]
-
+    err = np.array(rayData[0], dtype=np.int16)
+    vig = np.array(rayData[1], dtype=np.uint8)
+    x = np.array(rayData[2], dtype=np.float32)
+    y = np.array(rayData[3], dtype=np.float32)
+    z = np.array(rayData[4], dtype=np.float32)
     return x, y, z, err, vig 
 
-def plot_chiefray_intersects(ln, cb, tiltXY):
-    """plot chiefray intersects for various rotations of the lens
-    about a pivot point
+def plot_chiefray_intersects(ln, cb, tiltXY, pushNewLens=True):
+    """plot chiefray intersects for various rotations of the lens about a pivot point.
     
     Parameters
     ----------
@@ -510,10 +523,20 @@ def plot_chiefray_intersects(ln, cb, tiltXY):
         pivot point.
         e.g. tiltXY = [(0,0), (10, 0), (0, 10)]
         Max length = 6
+    pushNewLens : boolean, optional 
+        see notes 
         
     Returns
     -------
     None : plot
+
+    Notes
+    -----
+    This functions makes use of the array ray tracing functions for getting the 
+    chief-ray-image-plane ray intercept points. To do so, it needs to push the 
+    lens in the DDE server into the LDE. By default, following the ray tracing, 
+    a new lens is loaded into the LDE. Please make sure that there are no 
+    unsaved lens files in the LDE before calling this function. 
     """
     tiltAbtXParaNum = 3
     tiltAbtYParaNum = 4
@@ -541,6 +564,10 @@ def plot_chiefray_intersects(ln, cb, tiltXY):
                       zorder=2, colors='#CFCFCF', lw=0.8)
             ax.hlines(yGridPts, xmin=min(xGridPts), xmax=max(xGridPts), 
                       zorder=2, colors='#CFCFCF', lw=0.8)
+    # finally load a new lens into the LDE
+    if pushNewLens:
+        ln.zNewLens()
+        ln.zPushLens(1)
     ax.set_aspect('equal')
     ax.axis('tight')
     ax.set_ylabel(r'$\bf{y}\,\it{(mm)}$', fontsize=15)
@@ -862,7 +889,8 @@ def image_sampling(h, ypix, maxSpotDia):
     return numPixels
 
 def get_detector_settings(h, xpix, ypix, fl, xfield, umid, unear=None):
-    """get detector settings 
+    """computes and returns appropriate detector settings to be used for the 
+    Zemax Image Simulation tool.  
     
     Parameters
     ----------
@@ -919,7 +947,7 @@ def get_detector_settings(h, xpix, ypix, fl, xfield, umid, unear=None):
 
 def grid_of_square_dots(pixx=640, pixy=480, numx=7, numy=7, size=1, ch=3,
                         interSpread='max'):
-    """returns a grid-of-square-dots ndarray 
+    """returns a grid-of-square-dots array as Numpy's ndarray 
     
     Parameters
     ----------
@@ -965,6 +993,27 @@ def grid_of_square_dots(pixx=640, pixy=480, numx=7, numy=7, size=1, ch=3,
     for each in range(ch):
         gridofdots[:, :, each] = grid
     return gridofdots
+
+
+def save_to_IMAdir(arr, imagename):
+    """helper function to save a numpy ndarray as image into the Zemax's Image 
+    directory 
+
+    Parameters
+    ---------- 
+    arr : ndarray
+        ndarray 
+    imagename : string 
+        image filename, e.g. 'gridofdots.png'
+
+    Returns
+    ------- 
+    None
+    """
+    usr = os.path.expandvars("%userprofile%")
+    IMAdir = os.path.join(usr, 'Documents\Zemax\IMAFiles')
+    filename = os.path.join(IMAdir, imagename)
+    imsave(name=filename, arr=arr)
 
 
 def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname, 
@@ -1065,9 +1114,9 @@ def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname,
 
 def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objht,
                                 over, pupsam, imgsam, psfx, psfy, pixsize, 
-                                xpix, ypix, timeout=180, verbose=False):
+                                xpix, ypix, numCrImIpts=11, timeout=180, verbose=False):
     """Creates and returns a stack of simulated images for various focal distances 
-    and associated metadata in HDF5 container 
+    and associated metadata in HDF5 container. Also see Notes. 
     
     Parameters
     ----------
@@ -1077,8 +1126,9 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
     objsurfthick : list
         list of object surf (surfNum 0) thickness. See more in `simulate_depth_imaging()` 
     objarr : list
-        list of image files that represents the planar objects at the corresponding
-        object distances in `objdist`. See more in `simulate_depth_imaging()` 
+        list of image file names with extensions that represents the planar objects 
+        at the corresponding object distances in `objdist`. See more in 
+        `simulate_depth_imaging()`.  
     fldarr : list
         list of field numbers. See more in `simulate_depth_imaging()` 
     objht : real
@@ -1099,6 +1149,9 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
         number of pixel along x
     ypix : integer
         number of pixel along y
+    numCrImIpts : integer, optional (default=11) 
+        number of CR-IMG intersection points along each direction.
+        Total number of intersection points = numCrImIpts**2
     timeout : integer, optional, default=180
         timeout in ms for each image simulation
     verbose : bool, optional
@@ -1109,7 +1162,15 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
     ------- 
     hdffileFull : string 
        the file name, including absolute path, of the hdf5file containing 
-       the stack of images  
+       the stack of images 
+
+    Notes
+    -----
+    This functions makes use of the array ray tracing functions for getting the 
+    chief-ray-image-plane ray intercept points. To do so, it needs to push the 
+    lens in the DDE server into the LDE. Following the ray tracing a new lens is 
+    loaded into the LDE. Please make sure that there are no unsaved lens files 
+    in the LDE before calling this function.  
     """  
     imgDeltaSurf = totSurf = ln.zGetNumSurf()
     ln.zInsertSurface(surfNum=totSurf)
@@ -1139,7 +1200,9 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
                             'img_sim_reference' : 'vertex',
                             'img_sim_pixel_size' : pixsize,
                             'img_sim_xpixels' : xpix,
-                            'img_sim_ypixels' : ypix
+                            'img_sim_ypixels' : ypix,
+                            'cr_img_ipts_numx' : numCrImIpts,
+                            'cr_img_ipts_numy' : numCrImIpts,
                            }
         set_hdf5_attribs(f, globalAttribDict)
         dataGrp = f.create_group('data')  # data group
@@ -1156,12 +1219,30 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
                                               verbose)
             dsetimg = dataSubGrp.create_dataset('image', data=img, dtype=np.uint8)
             # PSF grid data
-            psfgrid, _ = simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, 'psf',
+            # Instead of asking Zemax to produce the regular PSF grid (i.e. the grid
+            # of PSF in the object space), we generate a grid of dots image and 
+            # run through the image simulation exactly as we did for the source image
+            # to generate the "image side" PSF field 
+
+            god = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
+                                      size=1, ch=3, interSpread='max')
+            save_to_IMAdir(god, 'imgsim_god.png')
+            godarr = ['imgsim_god.png']*len(objarr)
+            psfgrid, _ = simulate_depth_imaging(ln, objsurfthick, godarr, fldarr, 'img',
                                                 'spl.cfg', objht, over, pupsam, imgsam, 
                                                 psfx, psfy, pixsize, xpix, ypix, timeout,
                                                 verbose)
             dsetpsf = dataSubGrp.create_dataset('psf', data=psfgrid, dtype=np.uint8)
-            # TO DO: add chief-ray intersects dataset
+            # Chief-ray intersects dataset
+            # push lens into the LDE as array tracing occurs in the LDE
+            ln.zPushLens(1)
+            crimgiptsGrp = dataSubGrp.create_group('cr_img_ipts')
+            x, y, z, err, vig = get_chief_ray_intersects(n=numCrImIpts, real=True)
+            crimgiptsGrp.create_dataset('x', data=x, dtype=np.float32)
+            crimgiptsGrp.create_dataset('y', data=y, dtype=np.float32)
+            crimgiptsGrp.create_dataset('err', data=err, dtype=np.int16)
+
+            # set attribute
             dataSubGrpAttribDict = {'delta_z' : delta,   # others attributes like defocus_waves, paraxial mag etc
                                     'mag' : mag,   # list of magnifications at the different depths
                                    }
