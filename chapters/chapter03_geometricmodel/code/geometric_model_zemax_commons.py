@@ -6,14 +6,15 @@
 #
 # Author:        Indranil Sinharoy
 #
-# Copyright:     (c) Indranil Sinharoy 2015
+# Copyright:     (c) Indranil Sinharoy 2015, 2016
 # License:       MIT License
 #-------------------------------------------------------------------------------
 '''utility functions for geometric optics calculations using zemax. wavelength 
    assumed is 0.55 mu  
 '''
 from __future__ import division, print_function
-import os
+import os 
+import sys
 import numpy as np
 import collections as co
 import pyzdde.zdde as pyz
@@ -23,6 +24,211 @@ import h5py as hdf
 import time as time 
 from scipy.misc import imsave 
 
+# global variable
+_initTime = 0.0
+
+#%% File, directory management and other housekeeping utility functions
+def get_directory_path(dirbranch=None):
+    '''returns absolute path of the leaf directory 
+    
+    If directory branch is not present, the function creates the directories under 
+    current file directory
+    
+    Parameters
+    ----------
+    dirbranch : tuple or None
+        tuple of strings representing the directory branch. If `None`
+        the current directory is returned
+        
+    Returns
+    -------
+    dirpath : string
+        absolute path to the directory
+    
+    Example
+    -------
+    >>> get_directory_path(['data', 'imgstack'])
+    C:\Projects\project_edof\data\imgstack
+    
+    '''
+    wdir = os.path.dirname(os.path.realpath(__file__))
+    if dirbranch:
+        dirpath = os.path.join(wdir, *dirbranch)
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
+        return dirpath
+    else:
+        return wdir
+
+def set_hdf5_attribs(hdf5Obj, attribDict):
+    """helper function to set attributes of h5py objects  
+
+    Parameters
+    ---------- 
+    hdf5Obj : HDF5 object 
+        group or dataset object (including an hdf5 file)
+    attribDict : dict 
+        attribute dict 
+    """
+    for key, value in attribDict.items():
+        hdf5Obj.attrs[key] = value
+
+def save_to_IMAdir(arr, imagename):
+    """helper function to save a numpy ndarray as image into the Zemax's Image 
+    directory 
+
+    Parameters
+    ---------- 
+    arr : ndarray
+        ndarray 
+    imagename : string 
+        image filename, e.g. 'gridofdots.png'
+
+    Returns
+    ------- 
+    None
+    """
+    usr = os.path.expandvars("%userprofile%")
+    IMAdir = os.path.join(usr, 'Documents\Zemax\IMAFiles')
+    filename = os.path.join(IMAdir, imagename)
+    imsave(name=filename, arr=arr)
+
+def get_time(startClock=False):
+    """returns elapsed time  
+
+    The first time this function is called, `startClock` should be True.
+    The function doesn't print the time for the initiating call. 
+
+    Returns
+    ------- 
+    time : string 
+        elapsed time from the previous call 
+
+    """
+    global _initTime
+    if startClock:
+        _initTime = time.clock()
+    else:
+        _cputime = time.clock() - _initTime
+        m, s = divmod(_cputime, 60)
+        h, m = divmod(m, 60)
+        return "%d:%02d:%02d" % (h, m, s)
+
+#%% Helper functions for plotting data
+
+def show_pixel_grid(ax, pixX, pixY, gAlpha=None):
+    """plots pixel grid on the given axes 
+    
+    Parameters
+    ----------
+    ax : axes object 
+        figure axes object 
+    pixX : integer
+        number of pixels along x/columns
+    pixY : integer 
+        number of pixels along y/rows
+    gAlpha : float (0 < gAlpha <= 1)
+        alpha for the pixel grid
+        
+    Returns
+    -------
+    None
+    """
+    gAlpha = gAlpha if gAlpha is not None else 1.0
+    xl = np.arange(1, pixX) - 0.5
+    yl = np.arange(1, pixY) - 0.5
+    ax.xaxis.set_minor_locator(plt.FixedLocator(xl))
+    ax.yaxis.set_minor_locator(plt.FixedLocator(yl))
+    ax.xaxis.set_tick_params(which='minor', length=0)
+    ax.yaxis.set_tick_params(which='minor', length=0)
+    ax.xaxis.set_tick_params(which='major', direction='out')
+    ax.yaxis.set_tick_params(which='major', direction='out')
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+    ax.grid(which='minor', color='r', linestyle='-', linewidth=0.75, 
+            alpha=gAlpha)
+
+def show_around(img_data, pixX=20, pixY=None, ctrX=None, ctrY=None, 
+                pixSize=None, pixGrid=False, retData=False, ax=None):
+    """display pixX x pixY pixels around (ctrX, ctrY). 
+    
+    Parameters
+    ----------
+    img_data : list of list
+        data returned by ln.zGetImageSimulation() 
+    pixX : integer 
+        number of pixels along x
+    pixY : integer, optional
+        number of pxiels along y. If `None` or 0, `pixY` is assumed equal
+        to `pixX` 
+    ctrX : integer, optional
+        center pixel along x
+    ctrY : integer, optional 
+        center pixel  along y
+    pixSize : real, optional
+        length of the side of a square pixel.
+        if passed, a second axes is shown to show the physical dimension 
+    pixGrid : bool, optional
+        if True, show pixel grid
+    retData : bool, optional
+        if True, the cropped data is returned
+        and not plotted
+    ax : axes object, optional
+        if an axes object is passed the plot will be rendered 
+        in the given axes and `plt.show()` will have to be invoked 
+        by the caller. Use `0` if you want to use this function 
+        with ipywidgets' interactive function.  
+
+    
+    Assumptions
+    ------------
+    pixX, pixY, ctrX, ctrY are not 0
+    """
+    img = np.array(img_data, dtype='uint8')
+    M, N = img.shape[:2]
+    ctrX, ctrY = ctrX or N/2, ctrY or M/2
+    pixX = pixX or 20
+    pixY = pixY if pixY else pixX
+    sRow, eRow = int(ctrY - pixY/2), int(ctrY + pixY/2)
+    sCol, eCol = int(ctrX - pixX/2), int(ctrX + pixX/2)
+    # ensure bounds are right
+    sRow = sRow if sRow >= 0 else 0
+    eRow = eRow if eRow <= M else M
+    sCol = sCol if sCol >= 0 else 0
+    eCol = eCol if eCol <= N else N
+    data = img[sRow:eRow, sCol:eCol, :]
+    if retData:
+        return data
+    else:
+        if not ax:
+            fig, ax = plt.subplots(1, 1, figsize=(5.5, 5.5))
+        iAlpha = 0.8 if pixGrid else 1.0
+        ax.imshow(data, interpolation='none', zorder=15, alpha=iAlpha)
+        ax.set_xlabel('pixels', fontsize=10) 
+        ax.set_ylabel('pixels', fontsize=10)
+        if pixGrid:
+            show_pixel_grid(ax=ax, pixX=pixX, pixY=pixY)
+        if pixSize:
+            # create a secondary axes
+            ax2 = ax.twiny()
+            ax3 = ax2.twinx()
+            wideX = pixSize*(eCol-sCol)
+            wideY = pixSize*(eRow-sRow)
+            ax.xaxis.set_ticks_position('bottom') # required
+            ax.yaxis.set_ticks_position('left')   # required
+            ax2.set_xlim(0, wideX)
+            ax3.set_ylim(wideY, 0)
+            ax2.set_xlabel('phy. dim.', fontsize=10) 
+            ax3.set_ylabel('phy. dim.', fontsize=10)
+            ws = 'Width: {:2.3f}'.format(wideX)
+            hs = 'Height: {:2.3f}'.format(wideY)
+            ax.text(x=0.99, y=0.055, s=ws, transform = ax.transAxes, 
+                    color='w', zorder=16, alpha=0.65, horizontalalignment='right')
+            ax.text(x=0.99, y=0.02, s=hs, transform = ax.transAxes, 
+                    color='w', zorder=16, alpha=0.65, horizontalalignment='right')
+        if not ax:
+            ax.set_aspect('equal')
+            plt.show()
 
 #%% Basic geometric-optics functions
 def gaussian_lens_formula(u=None, v=None, f=None, infinity=10e20):
@@ -577,53 +783,10 @@ def plot_chiefray_intersects(ln, cb, tiltXY, pushNewLens=True):
               bbox_transform=fig.transFigure, handletextpad=0.5, handlelength=0.9)
     plt.show()
     
+
+
+
 #%% Functions for focal / angular sweep to EDOF simulation using Zemax
-
-def get_directory_path(dirbranch=None):
-    '''returns absolute path of the leaf directory 
-    
-    If directory branch is not present, the function creates the directories under 
-    current file directory
-    
-    Parameters
-    ----------
-    dirbranch : tuple or None
-        tuple of strings representing the directory branch. If `None`
-        the current directory is returned
-        
-    Returns
-    -------
-    dirpath : string
-        absolute path to the directory
-    
-    Example
-    -------
-    >>> get_directory_path(['data', 'imgstack'])
-    C:\Projects\project_edof\data\imgstack
-    
-    '''
-    wdir = os.path.dirname(os.path.realpath(__file__))
-    if dirbranch:
-        dirpath = os.path.join(wdir, *dirbranch)
-        if not os.path.exists(dirpath):
-            os.makedirs(dirpath)
-        return dirpath
-    else:
-        return wdir
-
-def set_hdf5_attribs(hdf5Obj, attribDict):
-    """helper function to set attributes
-
-    Parameters
-    ---------- 
-    hdf5Obj : HDF5 object 
-        group or dataset object (including an hdf5 file)
-    attribDict : dict 
-        attribute dict 
-    """
-    for key, value in attribDict.items():
-        hdf5Obj.attrs[key] = value
-
 
 # Meta-data schema for storing frames in hdf5 file
 # ------------------------------------------------
@@ -995,27 +1158,6 @@ def grid_of_square_dots(pixx=640, pixy=480, numx=7, numy=7, size=1, ch=3,
     return gridofdots
 
 
-def save_to_IMAdir(arr, imagename):
-    """helper function to save a numpy ndarray as image into the Zemax's Image 
-    directory 
-
-    Parameters
-    ---------- 
-    arr : ndarray
-        ndarray 
-    imagename : string 
-        image filename, e.g. 'gridofdots.png'
-
-    Returns
-    ------- 
-    None
-    """
-    usr = os.path.expandvars("%userprofile%")
-    IMAdir = os.path.join(usr, 'Documents\Zemax\IMAFiles')
-    filename = os.path.join(IMAdir, imagename)
-    imsave(name=filename, arr=arr)
-
-
 def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname, 
                            objht, over, pupsam, imgsam, psfx, psfy, pixsize, 
                            xpix, ypix, timeout=180, verbose=True):
@@ -1107,8 +1249,10 @@ def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname,
             img[:, :, i] = img[:, :, i] + np.array(imgData, dtype='uint8')[:, :, i]
         mag.append(ln.zGetMagnification())
         if verbose:
+            print('Time: {}. '.format(get_time()), end='')
             print(("Image sim of data type {} for obj {} for obj thick "
-                   "{:2.2f} done!".format(data, obj, thick)))
+                   "{:2.2f} completed!".format(data, obj, thick)))
+            sys.stdout.flush()
     return img, mag
 
 
@@ -1172,6 +1316,7 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
     loaded into the LDE. Please make sure that there are no unsaved lens files 
     in the LDE before calling this function.  
     """  
+    TeSTCODE_LOGIC = False   # note that Zemax must be running even for True
     imgDeltaSurf = totSurf = ln.zGetNumSurf()
     ln.zInsertSurface(surfNum=totSurf)
     ln.zSetSemiDiameter(surfNum=imgDeltaSurf, value=0)
@@ -1206,34 +1351,53 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
                            }
         set_hdf5_attribs(f, globalAttribDict)
         dataGrp = f.create_group('data')  # data group
+        get_time(startClock=True)  # initiate running clock 
         for i, delta in enumerate(imgDelta):
             if verbose:
+                print('Time: {}. '.format(get_time()), end='')
                 print('Starting image simulation for delta = {:2.4f}'.format(delta))
+                sys.stdout.flush()
             ln.zSetThickness(surfNum=imgDeltaSurf, value=delta)
             ln.zGetUpdate()
             dataSubGrp = dataGrp.create_group('{}'.format(i).zfill(3) )
             # image data
-            img, mag = simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, 'img',
-                                              'spl.cfg', objht, over, pupsam, imgsam, 
-                                              psfx, psfy, pixsize, xpix, ypix, timeout,
-                                              verbose)
+            if TeSTCODE_LOGIC:
+                print('Code logic test is on.')
+                img = np.random.randint(0, 255, (ypix, xpix, 3)).astype('uint8')
+                mag = 1.0
+            else:
+                img, mag = simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, 'img',
+                                  'spl.cfg', objht, over, pupsam, imgsam, 
+                                  psfx, psfy, pixsize, xpix, ypix, timeout,
+                                  verbose)
+
             dsetimg = dataSubGrp.create_dataset('image', data=img, dtype=np.uint8)
+
             # PSF grid data
             # Instead of asking Zemax to produce the regular PSF grid (i.e. the grid
             # of PSF in the object space), we generate a grid of dots image and 
             # run through the image simulation exactly as we did for the source image
             # to generate the "image side" PSF field 
-
             god = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
                                       size=1, ch=3, interSpread='max')
             save_to_IMAdir(god, 'imgsim_god.png')
             godarr = ['imgsim_god.png']*len(objarr)
-            psfgrid, _ = simulate_depth_imaging(ln, objsurfthick, godarr, fldarr, 'img',
+
+            if TeSTCODE_LOGIC:
+                print('Code logic test is on.')
+                psfgrid = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
+                                             size=10, ch=3, interSpread='max')
+            else:
+                psfgrid, _ = simulate_depth_imaging(ln, objsurfthick, godarr, fldarr, 'img',
                                                 'spl.cfg', objht, over, pupsam, imgsam, 
                                                 psfx, psfy, pixsize, xpix, ypix, timeout,
                                                 verbose)
             dsetpsf = dataSubGrp.create_dataset('psf', data=psfgrid, dtype=np.uint8)
+
             # Chief-ray intersects dataset
+            if verbose:
+                print('Tracing for chief-ray intersects...')
+                sys.stdout.flush()
             # push lens into the LDE as array tracing occurs in the LDE
             ln.zPushLens(1)
             crimgiptsGrp = dataSubGrp.create_group('cr_img_ipts')
