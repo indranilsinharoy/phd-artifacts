@@ -1235,7 +1235,7 @@ def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname,
     cfg = ln.zSetImageSimulationSettings(settingsFile=cfg, height=objht, over=over, 
                                          pupilSample=pupsam, imgSample=imgsam, 
                                          psfx=psfx, psfy=psfy, pixelSize=pixsize, 
-                                         xpix=xpix, ypix=ypix, reference=1, aberr=2, 
+                                         xpix=xpix, ypix=ypix, reference=1, aberr=2,  # reference is vertex
                                          illum=1, showAs=showAs)
     mag = []
     for thick, obj, fld in zip(objsurfthick, objarr, fldarr):
@@ -1331,6 +1331,7 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
     # create stack
     with hdf.File(hdffileFull, 'w') as f:
         globalAttribDict = {'zmxfile' : os.path.split(ln.zGetFile())[-1],
+                            'focal_stack_type' : 'frontoparallel',
                             'img_sim_field_height' : objht,
                             'img_sim_oversampling' : str(over),
                             'img_sim_wavelength' : 'RGB',
@@ -1414,6 +1415,173 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
 
     ln.zDeleteSurface(surfNum=imgDeltaSurf)
     return hdffileFull
+
+def get_lens_plane_tilts(uo=1000, nearObj=800, farObj=1200, fl=24, num=10):
+    """
+    """
+    # TO DO
+    return np.linspace(-5.0, 5.0, num).tolist()
+
+def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht,
+                           over, pupsam, imgsam, psfx, psfy, pixsize, 
+                           xpix, ypix, numCrImIpts=11, timeout=180, verbose=False):
+    """Creates and returns a stack of simulated images for various tilts of the lens  
+    and associated metadata in HDF5 container. Also see Notes. 
+    
+    Parameters
+    ----------
+    cb1 : integer 
+        number of the first coordinate break surface that imparts the tilt  
+    tiltX : list of reals
+        the deltas by which the image plane is shifted from the base image plane 
+        distance. 
+    objsurfthick : list
+        list of object surf (surfNum 0) thickness. See more in `simulate_depth_imaging()` 
+    objarr : list
+        list of image file names with extensions that represents the planar objects 
+        at the corresponding object distances in `objdist`. See more in 
+        `simulate_depth_imaging()`.  
+    fldarr : list
+        list of field numbers. See more in `simulate_depth_imaging()` 
+    objht : real
+        object height in mm
+    over : integer 
+        oversampling. See more in `simulate_depth_imaging()`
+    pupsam : integer
+        pupil sampling
+    imgsam : integer
+        image sampling 
+    psfx : integer
+        psf grid number x
+    psfy: integer
+        psf grid number y
+    pixsize : real 
+        pixel size, in mm
+    xpix : integer 
+        number of pixel along x
+    ypix : integer
+        number of pixel along y
+    numCrImIpts : integer, optional (default=11) 
+        number of CR-IMG intersection points along each direction.
+        Total number of intersection points = numCrImIpts**2
+    timeout : integer, optional, default=180
+        timeout in ms for each image simulation
+    verbose : bool, optional
+        if True, the function prints to notify the completion of every image 
+        simulation
+
+    Returns
+    ------- 
+    hdffileFull : string 
+       the file name, including absolute path, of the hdf5file containing 
+       the stack of images 
+
+    Notes
+    -----
+    This functions makes use of the array ray tracing functions for getting the 
+    chief-ray-image-plane ray intercept points. To do so, it needs to push the 
+    lens in the DDE server into the LDE. Following the ray tracing a new lens is 
+    loaded into the LDE. Please make sure that there are no unsaved lens files 
+    in the LDE before calling this function.  
+    """  
+    TeSTCODE_LOGIC = False   # Generally should be FALSE; Zemax must be running even for True
+    
+    # hdf5 file save settings
+    imgstackdir = get_directory_path(['data', 'imgstack'])
+    timetag = time.strftime('%Y_%m_%d_%H_%M') # year, month, day, hour, mins
+    hdffile = 'lens_tilt_focal_stack_{}.hdf5'.format(timetag)
+    hdffileFull = os.path.join(imgstackdir, hdffile)
+    samplingGrid =[32*(2**i) for i in range(10)]
+    
+    # create stack
+    with hdf.File(hdffileFull, 'w') as f:
+        globalAttribDict = {'zmxfile' : os.path.split(ln.zGetFile())[-1],
+                            'focal_stack_type' : 'lenstilts',
+                            'img_sim_field_height' : objht,
+                            'img_sim_oversampling' : str(over),
+                            'img_sim_wavelength' : 'RGB',
+                            'img_sim_pupil_sampling' : samplingGrid[pupsam-1],
+                            'img_sim_image_sampling' : samplingGrid[imgsam-1],
+                            'img_sim_psfx_points' : psfx,
+                            'img_sim_psfy_points' : psfy,
+                            'img_sim_polarization' : 'None',
+                            'img_sim_aberrations' : 'Diffraction',
+                            'img_sim_relative_illumination' : 'Yes',
+                            'img_sim_fixed_apertures' : 'Yes',
+                            'img_sim_reference' : 'vertex',
+                            'img_sim_pixel_size' : pixsize,
+                            'img_sim_xpixels' : xpix,
+                            'img_sim_ypixels' : ypix,
+                            'cr_img_ipts_numx' : numCrImIpts,
+                            'cr_img_ipts_numy' : numCrImIpts,
+                           }
+        set_hdf5_attribs(f, globalAttribDict)
+        dataGrp = f.create_group('data')  # data group
+        get_time(startClock=True)         # initiate running clock 
+        for i, tiltAbtX in enumerate(tiltX):
+            if verbose:
+                print('Time: {}. '.format(get_time()), end='')
+                print('Starting image simulation for tiltAbtX = {:2.4f}'.format(tiltAbtX))
+                sys.stdout.flush()
+            ln.zSetSurfaceParameter(surfNum=cb1, param=3, value=tiltAbtX) # tilt about x
+            ln.zGetUpdate()
+            dataSubGrp = dataGrp.create_group('{}'.format(i).zfill(3) )
+            # image data
+            if TeSTCODE_LOGIC:
+                print('Code logic test is on.')
+                img = np.random.randint(0, 255, (ypix, xpix, 3)).astype('uint8')
+                mag = 1.0
+            else:
+                img, mag = simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, 'img',
+                                  'spl.cfg', objht, over, pupsam, imgsam, 
+                                  psfx, psfy, pixsize, xpix, ypix, timeout,
+                                  verbose)
+
+            dsetimg = dataSubGrp.create_dataset('image', data=img, dtype=np.uint8)
+
+            # PSF grid data
+            # Instead of asking Zemax to produce the regular PSF grid (i.e. the grid
+            # of PSF in the object space), we generate a grid of dots image and 
+            # run through the image simulation exactly as we did for the source image
+            # to generate the "image side" PSF field 
+            god = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
+                                      size=1, ch=3, interSpread='max')
+            save_to_IMAdir(god, 'imgsim_god.png')
+            godarr = ['imgsim_god.png']*len(objarr)
+
+            if TeSTCODE_LOGIC:
+                print('Code logic test is on.')
+                psfgrid = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
+                                             size=10, ch=3, interSpread='max')
+            else:
+                psfgrid, _ = simulate_depth_imaging(ln, objsurfthick, godarr, fldarr, 'img',
+                                                'spl.cfg', objht, over, pupsam, imgsam, 
+                                                psfx, psfy, pixsize, xpix, ypix, timeout,
+                                                verbose)
+            dsetpsf = dataSubGrp.create_dataset('psf', data=psfgrid, dtype=np.uint8)
+
+            # Chief-ray intersects dataset
+            if verbose:
+                zcoeff = ln.zGetExtra(surfNum=14, colNum=13)
+                print('HARD CODED DEBUG: to ensure zernike coeff:', zcoeff)
+                print('Tracing for chief-ray intersects...')
+                sys.stdout.flush()
+            # push lens into the LDE as array tracing occurs in the LDE
+            ln.zPushLens(1)
+            crimgiptsGrp = dataSubGrp.create_group('cr_img_ipts')
+            x, y, z, err, vig = get_chief_ray_intersects(n=numCrImIpts, real=True)
+            crimgiptsGrp.create_dataset('x', data=x, dtype=np.float32)
+            crimgiptsGrp.create_dataset('y', data=y, dtype=np.float32)
+            crimgiptsGrp.create_dataset('err', data=err, dtype=np.int16)
+
+            # set attribute
+            dataSubGrpAttribDict = {'tilt_x' : tiltAbtX,   # others attributes like defocus_waves, paraxial mag etc
+                                    'mag' : mag,   # list of magnifications at the different depths
+                                   }
+            set_hdf5_attribs(dataSubGrp, dataSubGrpAttribDict)
+
+    return hdffileFull
+
 
 if __name__ == '__main__':
     pass
