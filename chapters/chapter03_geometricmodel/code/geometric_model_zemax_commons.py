@@ -24,6 +24,11 @@ import h5py as hdf
 import time as time 
 from scipy.misc import imsave 
 
+__all__ = ['draw_pupil_cardinal_planes', 'focal_stack_fronto_parallel', 'focal_stack_lens_tilts',
+           'get_detector_settings', 'get_image_plane_shifts', 'get_lens_plane_tilts',
+           'get_min_max_PSF_size', 'image_sampling', 'insert_cbs_to_tilt_lens',
+           'obj_field_height', 'plot_chiefray_intersects', 'show_around', 'show_grid_distortion',]
+
 # global variable
 _initTime = 0.0
 
@@ -1160,8 +1165,8 @@ def grid_of_square_dots(pixx=640, pixy=480, numx=7, numy=7, size=1, ch=3,
 
 def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname, 
                            objht, over, pupsam, imgsam, psfx, psfy, pixsize, 
-                           xpix, ypix, timeout=180, verbose=True):
-    """Simulate imaging with planes at different depths
+                           xpix, ypix, aberr=2, timeout=180, verbose=True):
+    """simulate imaging with object planes at different depths
     
     Parameters
     ----------
@@ -1202,6 +1207,8 @@ def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname,
         number of pixel along x
     ypix : integer
         number of pixel along y
+    aberr : integer, optional 
+        aberration; 0=none, 1=geometric, 2=diffraction 
     timeout : integer, optional
         timeout in ms
     verbose : bool, optional
@@ -1235,7 +1242,7 @@ def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname,
     cfg = ln.zSetImageSimulationSettings(settingsFile=cfg, height=objht, over=over, 
                                          pupilSample=pupsam, imgSample=imgsam, 
                                          psfx=psfx, psfy=psfy, pixelSize=pixsize, 
-                                         xpix=xpix, ypix=ypix, reference=1, aberr=2,  # reference is vertex
+                                         xpix=xpix, ypix=ypix, reference=1, aberr=aberr,  # reference is vertex
                                          illum=1, showAs=showAs)
     mag = []
     for thick, obj, fld in zip(objsurfthick, objarr, fldarr):
@@ -1258,7 +1265,7 @@ def simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, data, cfgname,
 
 def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objht,
                                 over, pupsam, imgsam, psfx, psfy, pixsize, 
-                                xpix, ypix, numCrImIpts=11, timeout=180, verbose=False):
+                                xpix, ypix, aberr=2, numCrImIpts=11, timeout=180, verbose=False):
     """Creates and returns a stack of simulated images for various focal distances 
     and associated metadata in HDF5 container. Also see Notes. 
     
@@ -1293,6 +1300,8 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
         number of pixel along x
     ypix : integer
         number of pixel along y
+    aberr : integer (0,1, or 2)
+        aberration; 0=none, 1=geometric, 2=diffraction 
     numCrImIpts : integer, optional (default=11) 
         number of CR-IMG intersection points along each direction.
         Total number of intersection points = numCrImIpts**2
@@ -1327,11 +1336,13 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
     hdffile = 'fronto_para_focal_stack_{}.hdf5'.format(timetag)
     hdffileFull = os.path.join(imgstackdir, hdffile)
     samplingGrid =[32*(2**i) for i in range(10)]
-    
+    aberrtype = ('geometric' if aberr-2 else 'diffraction') if aberr else 'none'
+    pmag = ln.zGetPupilMagnification()
     # create stack
     with hdf.File(hdffileFull, 'w') as f:
         globalAttribDict = {'zmxfile' : os.path.split(ln.zGetFile())[-1],
                             'focal_stack_type' : 'frontoparallel',
+                            'sys_pupil_mag' : pmag,
                             'img_sim_field_height' : objht,
                             'img_sim_oversampling' : str(over),
                             'img_sim_wavelength' : 'RGB',
@@ -1340,7 +1351,7 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
                             'img_sim_psfx_points' : psfx,
                             'img_sim_psfy_points' : psfy,
                             'img_sim_polarization' : 'None',
-                            'img_sim_aberrations' : 'Diffraction',
+                            'img_sim_aberrations' : aberrtype,
                             'img_sim_relative_illumination' : 'Yes',
                             'img_sim_fixed_apertures' : 'Yes',
                             'img_sim_reference' : 'vertex',
@@ -1361,20 +1372,19 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
             ln.zSetThickness(surfNum=imgDeltaSurf, value=delta)
             ln.zGetUpdate()
             dataSubGrp = dataGrp.create_group('{}'.format(i).zfill(3) )
-            # image data
+            # IMAGE SIMULATION DATA
             if TeSTCODE_LOGIC:
                 print('Code logic test is on.')
                 img = np.random.randint(0, 255, (ypix, xpix, 3)).astype('uint8')
                 mag = 1.0
             else:
                 img, mag = simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, 'img',
-                                  'spl.cfg', objht, over, pupsam, imgsam, 
-                                  psfx, psfy, pixsize, xpix, ypix, timeout,
-                                  verbose)
+                                  'spl.cfg', objht, over, pupsam, imgsam, psfx, psfy, 
+                                  pixsize, xpix, ypix, aberr, timeout, verbose)
 
             dsetimg = dataSubGrp.create_dataset('image', data=img, dtype=np.uint8)
 
-            # PSF grid data
+            # PSF GRID DATA
             # Instead of asking Zemax to produce the regular PSF grid (i.e. the grid
             # of PSF in the object space), we generate a grid of dots image and 
             # run through the image simulation exactly as we did for the source image
@@ -1390,15 +1400,12 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
                                              size=10, ch=3, interSpread='max')
             else:
                 psfgrid, _ = simulate_depth_imaging(ln, objsurfthick, godarr, fldarr, 'img',
-                                                'spl.cfg', objht, over, pupsam, imgsam, 
-                                                psfx, psfy, pixsize, xpix, ypix, timeout,
+                                                'spl.cfg', objht, over, pupsam, imgsam, psfx, 
+                                                psfy, pixsize, xpix, ypix, aberr, timeout,
                                                 verbose)
             dsetpsf = dataSubGrp.create_dataset('psf', data=psfgrid, dtype=np.uint8)
 
-            # Chief-ray intersects dataset
-            if verbose:
-                print('Tracing for chief-ray intersects...')
-                sys.stdout.flush()
+            # CHIEF-RAY INTERSECT DATA 
             # push lens into the LDE as array tracing occurs in the LDE
             ln.zPushLens(1)
             crimgiptsGrp = dataSubGrp.create_group('cr_img_ipts')
@@ -1406,8 +1413,11 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
             crimgiptsGrp.create_dataset('x', data=x, dtype=np.float32)
             crimgiptsGrp.create_dataset('y', data=y, dtype=np.float32)
             crimgiptsGrp.create_dataset('err', data=err, dtype=np.int16)
+            if verbose:
+                print('Traced for chief-ray intersects...')
+                sys.stdout.flush()
 
-            # set attribute
+            # set subgroup attribute
             dataSubGrpAttribDict = {'delta_z' : delta,   # others attributes like defocus_waves, paraxial mag etc
                                     'mag' : mag,   # list of magnifications at the different depths
                                    }
@@ -1417,14 +1427,14 @@ def focal_stack_fronto_parallel(ln, imgDelta, objsurfthick, objarr, fldarr, objh
     return hdffileFull
 
 def get_lens_plane_tilts(uo=1000, nearObj=800, farObj=1200, fl=24, num=10):
-    """
+    """TO DO
     """
     # TO DO
     return np.linspace(-5.0, 5.0, num).tolist()
 
-def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht,
-                           over, pupsam, imgsam, psfx, psfy, pixsize, 
-                           xpix, ypix, numCrImIpts=11, timeout=180, verbose=False):
+def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht, over, 
+                           pupsam, imgsam, psfx, psfy, pixsize, xpix, ypix, aberr=2, 
+                           psfGrid=True, numCrImIpts=11, timeout=180, verbose=False):
     """Creates and returns a stack of simulated images for various tilts of the lens  
     and associated metadata in HDF5 container. Also see Notes. 
     
@@ -1461,6 +1471,11 @@ def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht,
         number of pixel along x
     ypix : integer
         number of pixel along y
+    aberr : integer 
+        aberrations, 0=none, 1=geometric, 2=diffraction 
+    psfGrid : bool, optional 
+        if True (default), the PSF grid (in image space) is simulated and 
+        embedded as a dataset. If False, the PSF grid dataset is empty. 
     numCrImIpts : integer, optional (default=11) 
         number of CR-IMG intersection points along each direction.
         Total number of intersection points = numCrImIpts**2
@@ -1483,20 +1498,22 @@ def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht,
     lens in the DDE server into the LDE. Following the ray tracing a new lens is 
     loaded into the LDE. Please make sure that there are no unsaved lens files 
     in the LDE before calling this function.  
-    """  
+    """ 
+    # TO DO: Remove the TeSTCODE_LOGIC logic once the code is ready 
     TeSTCODE_LOGIC = False   # Generally should be FALSE; Zemax must be running even for True
-    
     # hdf5 file save settings
     imgstackdir = get_directory_path(['data', 'imgstack'])
     timetag = time.strftime('%Y_%m_%d_%H_%M') # year, month, day, hour, mins
     hdffile = 'lens_tilt_focal_stack_{}.hdf5'.format(timetag)
     hdffileFull = os.path.join(imgstackdir, hdffile)
     samplingGrid =[32*(2**i) for i in range(10)]
-    
+    aberrtype = ('geometric' if aberr-2 else 'diffraction') if aberr else 'none'
+    pmag = ln.zGetPupilMagnification()
     # create stack
     with hdf.File(hdffileFull, 'w') as f:
         globalAttribDict = {'zmxfile' : os.path.split(ln.zGetFile())[-1],
                             'focal_stack_type' : 'lenstilts',
+                            'sys_pupil_mag' : pmag,
                             'img_sim_field_height' : objht,
                             'img_sim_oversampling' : str(over),
                             'img_sim_wavelength' : 'RGB',
@@ -1505,7 +1522,7 @@ def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht,
                             'img_sim_psfx_points' : psfx,
                             'img_sim_psfy_points' : psfy,
                             'img_sim_polarization' : 'None',
-                            'img_sim_aberrations' : 'Diffraction',
+                            'img_sim_aberrations' : aberrtype,
                             'img_sim_relative_illumination' : 'Yes',
                             'img_sim_fixed_apertures' : 'Yes',
                             'img_sim_reference' : 'vertex',
@@ -1525,47 +1542,41 @@ def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht,
                 sys.stdout.flush()
             ln.zSetSurfaceParameter(surfNum=cb1, param=3, value=tiltAbtX) # tilt about x
             ln.zGetUpdate()
-            dataSubGrp = dataGrp.create_group('{}'.format(i).zfill(3) )
-            # image data
+            dataSubGrp = dataGrp.create_group('{}'.format(i).zfill(3))
+            # IMAGE SIMULATION DATA
             if TeSTCODE_LOGIC:
                 print('Code logic test is on.')
                 img = np.random.randint(0, 255, (ypix, xpix, 3)).astype('uint8')
                 mag = 1.0
             else:
                 img, mag = simulate_depth_imaging(ln, objsurfthick, objarr, fldarr, 'img',
-                                  'spl.cfg', objht, over, pupsam, imgsam, 
-                                  psfx, psfy, pixsize, xpix, ypix, timeout,
-                                  verbose)
-
+                                                  'spl.cfg', objht, over, pupsam, imgsam, 
+                                                  psfx, psfy, pixsize, xpix, ypix, aberr, 
+                                                  timeout, verbose)
             dsetimg = dataSubGrp.create_dataset('image', data=img, dtype=np.uint8)
-
-            # PSF grid data
+            # PSF GRID DATA
             # Instead of asking Zemax to produce the regular PSF grid (i.e. the grid
             # of PSF in the object space), we generate a grid of dots image and 
             # run through the image simulation exactly as we did for the source image
             # to generate the "image side" PSF field 
-            god = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
-                                      size=1, ch=3, interSpread='max')
-            save_to_IMAdir(god, 'imgsim_god.png')
-            godarr = ['imgsim_god.png']*len(objarr)
-
-            if TeSTCODE_LOGIC:
-                print('Code logic test is on.')
-                psfgrid = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
-                                             size=10, ch=3, interSpread='max')
+            if psfGrid:
+                god = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
+                                          size=1, ch=3, interSpread='max')
+                save_to_IMAdir(god, 'imgsim_god.png')
+                godarr = ['imgsim_god.png']*len(objarr)
+                if TeSTCODE_LOGIC:
+                    print('Code logic test is on.')
+                    psfgrid = grid_of_square_dots(pixx=xpix, pixy=ypix, numx=psfx, numy=psfy, 
+                                                 size=10, ch=3, interSpread='max')
+                else:
+                    psfgrid, _ = simulate_depth_imaging(ln, objsurfthick, godarr, fldarr, 'img',
+                                                    'spl.cfg', objht, over, pupsam, imgsam, 
+                                                    psfx, psfy, pixsize, xpix, ypix, aberr, 
+                                                    timeout, verbose)
+                dsetpsf = dataSubGrp.create_dataset('psf', data=psfgrid, dtype=np.uint8)
             else:
-                psfgrid, _ = simulate_depth_imaging(ln, objsurfthick, godarr, fldarr, 'img',
-                                                'spl.cfg', objht, over, pupsam, imgsam, 
-                                                psfx, psfy, pixsize, xpix, ypix, timeout,
-                                                verbose)
-            dsetpsf = dataSubGrp.create_dataset('psf', data=psfgrid, dtype=np.uint8)
-
-            # Chief-ray intersects dataset
-            if verbose:
-                zcoeff = ln.zGetExtra(surfNum=14, colNum=13)
-                print('HARD CODED DEBUG: to ensure zernike coeff:', zcoeff)
-                print('Tracing for chief-ray intersects...')
-                sys.stdout.flush()
+                dsetpsf = dataSubGrp.create_dataset('psf', shape=(ypix, xpix, 3), dtype=np.uint8) # no actual data is stored
+            # CHIEF-RAY INTERSECT DATA
             # push lens into the LDE as array tracing occurs in the LDE
             ln.zPushLens(1)
             crimgiptsGrp = dataSubGrp.create_group('cr_img_ipts')
@@ -1573,15 +1584,16 @@ def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht,
             crimgiptsGrp.create_dataset('x', data=x, dtype=np.float32)
             crimgiptsGrp.create_dataset('y', data=y, dtype=np.float32)
             crimgiptsGrp.create_dataset('err', data=err, dtype=np.int16)
-
-            # set attribute
+            if verbose:
+                zcoeff = ln.zGetExtra(surfNum=14, colNum=13)
+                print('Traced chief-ray intersects.')
+                sys.stdout.flush()
+            # set sub-group attribute
             dataSubGrpAttribDict = {'tilt_x' : tiltAbtX,   # others attributes like defocus_waves, paraxial mag etc
                                     'mag' : mag,   # list of magnifications at the different depths
                                    }
             set_hdf5_attribs(dataSubGrp, dataSubGrpAttribDict)
-
     return hdffileFull
-
 
 if __name__ == '__main__':
     pass
