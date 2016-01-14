@@ -623,7 +623,7 @@ def show_grid_distortion(n=11):
     
     Rays are traced on the lens in the LDE (and not in the DDE server). The 
     paraxial chief ray intersection points forms the reference field. Comparing 
-    the two fields gives a sense of the distortion.  
+    the two fields gives a sense of the geometric distortion produced by the lens.  
     
     Parameters
     ----------
@@ -1535,14 +1535,14 @@ def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht, 
         set_hdf5_attribs(f, globalAttribDict)
         dataGrp = f.create_group('data')  # data group
         get_time(startClock=True)         # initiate running clock 
-        for i, tiltAbtX in enumerate(tiltX):
+        for tiltCnt, tiltAbtX in enumerate(tiltX):
             if verbose:
                 print('Time: {}. '.format(get_time()), end='')
                 print('Starting image simulation for tiltAbtX = {:2.4f}'.format(tiltAbtX))
                 sys.stdout.flush()
             ln.zSetSurfaceParameter(surfNum=cb1, param=3, value=tiltAbtX) # tilt about x
             ln.zGetUpdate()
-            dataSubGrp = dataGrp.create_group('{}'.format(i).zfill(3))
+            dataSubGrp = dataGrp.create_group('{}'.format(tiltCnt).zfill(3))
             # IMAGE SIMULATION DATA
             if TeSTCODE_LOGIC:
                 print('Code logic test is on.')
@@ -1576,21 +1576,27 @@ def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht, 
                 dsetpsf = dataSubGrp.create_dataset('psf', data=psfgrid, dtype=np.uint8)
             else:
                 dsetpsf = dataSubGrp.create_dataset('psf', shape=(ypix, xpix, 3), dtype=np.uint8) # no actual data is stored
-            # CHIEF-RAY INTERSECT DATA
-            # push lens into the LDE as array tracing occurs in the LDE
-            ln.zPushLens(1)
-            crimgiptsGrp = dataSubGrp.create_group('cr_img_ipts')
-            x, y, z, err, vig = get_chief_ray_intersects(n=numCrImIpts, real=True)
-            crimgiptsGrp.create_dataset('x', data=x, dtype=np.float32)
-            crimgiptsGrp.create_dataset('y', data=y, dtype=np.float32)
-            crimgiptsGrp.create_dataset('err', data=err, dtype=np.int16)
+            # CHIEF-RAY INTERSECT DATA for all object planes
+            enpp = ln.zGetPupil().ENPP
+            expp = ln.zGetPupil().EXPP
+            crImgIPtsGrp = dataSubGrp.create_group('cr_img_ipts')
+            for thickCnt, thick in enumerate(objsurfthick):
+                ret = ln.zSetThickness(surfNum=0, value=thick)
+                # push lens into the LDE as array tracing occurs in the LDE
+                ln.zPushLens(1)
+                x, y, z, err, vig = get_chief_ray_intersects(n=numCrImIpts, real=True)
+                crImgIPtsSubGrp = crImgIPtsGrp.create_group('{}'.format(thickCnt).zfill(2))
+                crImgIPtsSubGrp.create_dataset('x', data=x, dtype=np.float32)
+                crImgIPtsSubGrp.create_dataset('y', data=y, dtype=np.float32)
+                crImgIPtsSubGrp.create_dataset('err', data=err, dtype=np.int16)
+                set_hdf5_attribs(crImgIPtsSubGrp, {'obj_to_enpp' : enpp + thick}) #
             if verbose:
-                zcoeff = ln.zGetExtra(surfNum=14, colNum=13)
                 print('Traced chief-ray intersects.')
                 sys.stdout.flush()
             # set sub-group attribute
             dataSubGrpAttribDict = {'tilt_x' : tiltAbtX,   # others attributes like defocus_waves, paraxial mag etc
-                                    'mag' : mag,   # list of magnifications at the different depths
+                                    'mag' : mag,           # list of magnifications at the different depths
+                                    'img_to_expp' : abs(expp)  # Exit pupil to Image plane
                                    }
             set_hdf5_attribs(dataSubGrp, dataSubGrpAttribDict)
     return hdffileFull
