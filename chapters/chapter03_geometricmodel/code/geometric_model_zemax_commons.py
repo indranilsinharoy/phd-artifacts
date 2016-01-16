@@ -710,7 +710,6 @@ def get_chief_ray_intersects(n=11, real=True, surf=-1):
     # trace the ray
     mode = 0 if real else 1
     rayData = at.zGetTraceArray(numRays=n**2, hx=hx, hy=hy, mode=mode, surf=surf)
-
     # parse ray traced data
     err = np.array(rayData[0], dtype=np.int16)
     vig = np.array(rayData[1], dtype=np.uint8)
@@ -743,11 +742,15 @@ def plot_chiefray_intersects(ln, cb, tiltXY, pushNewLens=True):
 
     Notes
     -----
-    This functions makes use of the array ray tracing functions for getting the 
-    chief-ray-image-plane ray intercept points. To do so, it needs to push the 
-    lens in the DDE server into the LDE. By default, following the ray tracing, 
-    a new lens is loaded into the LDE. Please make sure that there are no 
-    unsaved lens files in the LDE before calling this function. 
+    1. This function uses the array ray tracing module functions for generating 
+       the chief-ray--image-plane intersection points. To do so, it needs to push 
+       the lens in the DDE server into the LDE. By default, following the ray 
+       tracing, a new lens is loaded into the LDE. Please make sure that there 
+       are no unsaved/work-in-progress lens files in the LDE before invoking this 
+       function.
+    2. This function always traces "real" rays. This is because paraxial ray 
+       tracing doesn't seem to be affected by lens tilts, i.e. the ray-intersect 
+       pattern is constant for all rotations of the lens.  
     """
     tiltAbtXParaNum = 3
     tiltAbtYParaNum = 4
@@ -1056,7 +1059,7 @@ def image_sampling(h, ypix, maxSpotDia):
     numPixels = int(maxSpotDia/pixelHeight)
     return numPixels
 
-def get_detector_settings(h, xpix, ypix, fl, xfield, umid, unear=None):
+def get_detector_settings(h, xpix, ypix, fl, xfield, umid, unear=None, ufar=None):
     """computes and returns appropriate detector settings to be used for the 
     Zemax Image Simulation tool.  
     
@@ -1074,12 +1077,16 @@ def get_detector_settings(h, xpix, ypix, fl, xfield, umid, unear=None):
     xfield : real
         x field (as object height) in fields settings
     umid : real
-        object plane distance along the optical axis for
-        the middle plane (that is in focus)
+        distance along the optical axis for the middle 
+        object plane (that is in focus)
     unear : real, optional
-        object plane distance along the optical axis for
-        the nearest object plane. If `None`, then `unear`
-        is assumed to be equal to `u
+        distance along the optical axis for the nearest 
+        object plane. If `None`, then `unear` is assumed 
+        to be equal to `umid` for detector size computation. 
+    ufar : real, optional 
+        distance along the optical axis for the farthest 
+        object plane. If `None`, then `ufar` is assumed to 
+        be equal to `umid` for detector pixel size computation.
         
     Returns
     -------
@@ -1096,17 +1103,27 @@ def get_detector_settings(h, xpix, ypix, fl, xfield, umid, unear=None):
     2. The function assumes that the field setting contains 
        ± xfield 
     """
+    unear = unear if unear is not None else umid
+    ufar = ufar if ufar is not None else umid 
     aratio = xpix/ypix
     w = aratio*h   # width in obj space
     pixHeightObj = h/ypix
     # calculation on the middle plane (that is in focus)
     tmag = fl/(umid - fl)
-    detPixelSize = pixHeightObj*abs(tmag)  
-    
+    imgDist = gaussian_lens_formula(u=umid, v=None, f=fl).v
+    # calcuate the detector pixel size
+    #detPixelSize = pixHeightObj*abs(tmag)  
+    # the smallest detector size required to prevent image simulation
+    # artifacts should be determined from the smallest transverse magnification,
+    # which is the magnification associated with the largest object plane 
+    # distance.
+    tmagFar = imgDist/ufar   # note that the far object is not in focus
+    detPixelSize = pixHeightObj*tmagFar 
+
     # calculate detector width and height for the largest
     # magnification
-    unear = unear if unear is not None else umid
-    tmagNear = fl/(unear -fl)
+    #tmagNear = fl/(unear -fl)
+    tmagNear = imgDist/unear   # note that the near object is not in focus
     imgHeight = h*abs(tmagNear) 
     imgWidth = w*abs(tmagNear)
     detXPixels = int((2.0*xfield*abs(tmagNear) + imgWidth)/detPixelSize) + 30  

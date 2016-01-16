@@ -48,30 +48,45 @@ Aberrations: Diffraction
 Detector and Display Settings
 -----------------------------
 Reference: Vertex   <-- Important
-Pixel Size: 0.004
-X Pixels: 1550
-Y Pixels: 760
-
-
-Output File:
-------------
-xxx_output.png
+Pixel Size:  
+X Pixels:  
+Y Pixels:  
 
 
 
-Single paraxial lens
---------------------
 
-Fronto parallel configuration
-Sharp focus distance, OBJ thickness = 960 mm
-Blur, near distance = 760 mm
-Blur, far distance = 1160 mm
+Information regarding the figures:
+=================================
+
+1. evidenceOfArtifactsInZemaxImageSim_NoAberr.png
+2. evidenceOfArtifactsInZemaxImageSim_NoAberr2.png
+3. 2. evidenceOfArtifactsInZemaxImageSim_NoAberr3.png
+
+These images are evidences that the Zemax image simulation tool produces 
+blocky artifacts. Location of these blocks artifacts doesn't seem to depend "Image Sampling"
+setting. However, the location changed when I set the aberration type to diffraction.
+Also, this problem exist even in the new OpticStudio 15.5.
+
+The main cause of this artifact seems to be the pixel size of the detector, when it is
+defined -- the blocks are not apparent if the detector pixel size is equal to the object 
+pixel size * transverse_magnification. If the blocks are very prominant if the set detector
+pixel size is larger than this ( object_pixel_size * transverse_magnification) value.
 
 
+Simulation details for 2. evidenceOfArtifactsInZemaxImageSim_NoAberr2.png:
 
-image delta: -0.100368016059
-ensqSpotImg 34.2693328
-image delta: 0.152104106811
-ensqSpotImg 51.7320632
-image delta: 0
-ensqSpotImg 3.4294144
+"evidenceOfArtifactsInZemaxImageSim_NoAberr2.png" was produces by using the 
+source image as "king.png".
+Aberrations: None 
+pixel size: 0.0021668560298652812
+X-pixels = 2853
+Y-pixels = 2000
+
+Simulation details for 3. evidenceOfArtifactsInZemaxImageSim_NoAberr3.png:
+
+"evidenceOfArtifactsInZemaxImageSim_NoAberr2.png" was produces by using the 
+source image as "king.png".
+Aberrations: Diffraction (with Zernike coefficient 11 value 0.2) 
+pixel size: 0.0021668560298652812
+X-pixels = 2853
+Y-pixels = 2000
