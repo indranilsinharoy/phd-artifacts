@@ -16,13 +16,20 @@ from __future__ import division, print_function
 import os 
 import sys
 import numpy as np
+import cv2
 import collections as co
 import pyzdde.zdde as pyz
 import pyzdde.arraytrace as at 
-import matplotlib.pyplot as plt  
+import matplotlib.pyplot as plt
+from matplotlib.colorbar import make_axes
+from IPython.core import display
+import ipywidgets as widgets
+from ipywidgets import interactive, interact, fixed  
 import h5py as hdf
 import time as time 
 from scipy.misc import imsave 
+from iutils.cv.transforms import get_homography2D, get_affine2D
+
 
 __all__ = ['draw_pupil_cardinal_planes', 'focal_stack_fronto_parallel', 'focal_stack_lens_tilts',
            'get_detector_settings', 'get_image_plane_shifts', 'get_lens_plane_tilts',
@@ -1447,6 +1454,7 @@ def get_lens_plane_tilts(uo=1000, nearObj=800, farObj=1200, fl=24, num=10):
     """TO DO
     """
     # TO DO
+    print("TO IMPLEMENT")
     return np.linspace(-5.0, 5.0, num).tolist()
 
 def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht, over, 
@@ -1617,6 +1625,332 @@ def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht, 
                                    }
             set_hdf5_attribs(dataSubGrp, dataSubGrpAttribDict)
     return hdffileFull
+
+#%% Data viewing functions
+IMG_DOWN_SAMP_PIX_SKIP = 2
+
+def get_hdf5files_list():
+    """helper function to get the list of HDF5 files in the `data/imgstack`
+    sub-directory
+    """
+    imgdir = os.path.join(os.getcwd(), 'data', 'imgstack')
+    return [f for f in os.listdir(imgdir) if f.endswith('.hdf5')]
+
+def _downsample_img(img):
+    """downsample the image data by a factor IMG_DOWN_SAMP_PIX_SKIP
+    """
+    global IMG_DOWN_SAMP_PIX_SKIP
+    return img[::IMG_DOWN_SAMP_PIX_SKIP,::IMG_DOWN_SAMP_PIX_SKIP,:]
+
+def _memmap_ds(h5f, ds):
+    """returns a numpy memmap'd array mapped to the data buffer of the dataset `ds`
+
+    Parameters
+    ---------- 
+    h5f : string 
+        HDF5 file name (not the file object)
+    ds : object 
+        dataset path to be memory-mapped
+    
+    Assumptions
+    ----------- 
+    The data is uncompressed and not chunked
+    """
+    arr = None
+    offset = ds.id.get_offset()
+    if offset: # offset is "None" if there is no real data 
+        arr = np.memmap(h5f, mode='r', shape=ds.shape, 
+                    offset=offset, dtype=ds.dtype)
+    return arr
+
+def _get_formatted_dat_string(dats):
+    """dats : list of magnifications, angles or other data
+    """
+    datsstr = ['{:2.3f}'.format(each) for each in dats]
+    return ', '.join(datsstr)
+
+def show_image_stack(hdffile, tiltCnt):
+    """plots the `tiltCnt` sequence of the image in the image stack 
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    with hdf.File(hdffile, 'r') as f:
+        dgrp = f['data/'+'{}'.format(tiltCnt).zfill(3)]
+        dsetImg = f['data/'+'{}'.format(tiltCnt).zfill(3)+'/image']
+        img = _memmap_ds(hdffile, dsetImg)
+        ax.imshow(_downsample_img(img)) #, interpolation='none')
+        #if f.attrs['focal_stack_type'] == 'lenstilts'
+        print('Mags:', _get_formatted_dat_string(dgrp.attrs['mag']))
+        plt.show()
+
+def show_registered_image_stack(hdffile, tiltCnt):
+    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    with hdf.File(hdffile, 'r') as f:
+        try:
+            #dgrp = f['registered_data/'+'{}'.format(tiltCnt).zfill(3)]
+            dsetImg = f['/registered_data/'+'{}'.format(tiltCnt).zfill(3)+'/image']
+            img = _memmap_ds(hdffile, dsetImg)
+        except:
+            ax.text(x=0.35, y=0.5, s='NO REGISTERED DATA', fontsize=17)
+        else:
+            ax.imshow(_downsample_img(img)) #, interpolation='none')
+            #if f.attrs['focal_stack_type'] == 'lenstilts'
+            #print('Mags:', _get_formatted_dat_string(dgrp.attrs['mag']))
+        plt.show()
+
+def show_psf_stack(hdffile, tiltCnt):
+    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    with hdf.File(hdffile, 'r') as f:
+        dgrp = f['/data/'+'{}'.format(tiltCnt).zfill(3)]
+        dsetPsf = f['/data/'+'{}'.format(tiltCnt).zfill(3)+'/psf']
+        psfdat = _memmap_ds(hdffile, dsetPsf)
+        if psfdat:
+            ax.imshow(_downsample_img(psfdat), interpolation='none')
+        else:
+            ax.text(x=0.35, y=0.5, s='NO PSF DATA', fontsize=17)
+        print('Magnifications:', dgrp.attrs['mag'])
+        plt.show()
+
+def show_registered_psf_stack(hdffile, tiltCnt):
+    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    with hdf.File(hdffile, 'r') as f:
+        try:
+            #dgrp = f['rectified_data/'+'{}'.format(tiltCnt).zfill(3)]
+            dsetPsf = f['registered_data/'+'{}'.format(tiltCnt).zfill(3)+'/psf']
+        except:
+            ax.text(x=0.35, y=0.5, s='NO REGISTERED DATA', fontsize=17)
+        else:
+            psfdat = _memmap_ds(hdffile, dsetPsf)
+            if psfdat:
+                ax.imshow(_downsample_img(psfdat), interpolation='none')
+            else:
+                ax.text(x=0.35, y=0.5, s='NO PSF DATA', fontsize=17)
+                #print('Magnifications:', dgrp.attrs['mag'])
+        plt.show()
+
+def _get_zero_lens_tilt_sub_group(f):
+    """returns the absolute path to the subgroup that
+    corresponds to 0° lens tilt
+    
+    Parameters
+    ----------
+    f : object 
+        HDF5 file object 
+        
+    Returns
+    -------
+    sgrp : HDF5 group object 
+        
+    Examples
+    --------
+    >>> subGrp = get_zero_lens_tilt_sub_group(f)
+    >>> print(subGrp)
+    <HDF5 group "/data/001" (3 members)>
+    """
+    dataGroups = f['data']
+    for sg in dataGroups:
+        if(f['data'][sg].attrs['tilt_x'])==0:
+            return f['data'][sg]
+
+def show_cr_img_inter_stack(hdffile, tiltCnt):
+    # determine the axes parameters
+    g = 0.04    # guard space on left edge
+    p = 0.028   # padding between the axes
+    w = (1.0 - (1.1*g + 2*p))/3 # width of each axes
+    b = 0.4     # bottom of each axes within the figure
+    h = 0.6     # height of each axes within the figure
+    fig = plt.figure(figsize=(16, 10))
+    ax = [fig.add_axes([g, b, w, h]),
+          fig.add_axes([g+p+w, b, w, h]),
+          fig.add_axes([g+2*(p+w), b, w, h])]
+
+    with hdf.File(hdffile, 'r') as f:
+        nx = f.attrs['cr_img_ipts_numx']
+        ny = f.attrs['cr_img_ipts_numy']
+        dgrp0path = _get_zero_lens_tilt_sub_group(f).name
+        dgrp = f['data/' + '{}'.format(tiltCnt).zfill(3)]
+        crImgIptsGrp = f['data/' + '{}'.format(tiltCnt).zfill(3) + '/cr_img_ipts']
+        xlim, ylim = 0, 0
+        for distCnt, grp in enumerate(crImgIptsGrp):
+            x0 = f[dgrp0path + '/cr_img_ipts/' + '{}'.format(distCnt).zfill(2) + '/x'] 
+            y0 = f[dgrp0path + '/cr_img_ipts/' + '{}'.format(distCnt).zfill(2) + '/y']
+            x = crImgIptsGrp[grp]['x']
+            y = crImgIptsGrp[grp]['y']
+            # plot intersection points for no lens tilt ... this sets the figure parameters
+            ax[distCnt].scatter(x0, y0, marker='o', s=15, facecolors='none', 
+                       edgecolors='b', alpha=0.8, zorder=14)
+            x0GridPts = x0[:nx]
+            y0GridPts = y0[::ny] 
+            ax[distCnt].vlines(x0GridPts, ymin=min(y0GridPts), ymax=max(y0GridPts), 
+                      zorder=2, colors='#CFCFCF', lw=0.8)
+            ax[distCnt].hlines(y0GridPts, xmin=min(x0GridPts), xmax=max(x0GridPts), 
+                      zorder=2, colors='#CFCFCF', lw=0.8)
+            # plot the intersection points for non-zero lens-tilts
+            ax[distCnt].scatter(x, y, marker='x', s=40, c='r', alpha=0.9, zorder=15)
+            # quiver plot
+            M = np.hypot(x[:]-x0[:], y[:]-y0[:])
+            Q = ax[distCnt].quiver(x0, y0, x[:]-x0[:], y[:]-y0[:], M, 
+                          units='xy', pivot='tail', width=0.05,
+                          scale=1, alpha=0.8, zorder=12)
+            
+            cax, _ = make_axes(ax[distCnt], orientation='horizontal', 
+                                 fraction=0.01, anchor=(0.0, 1.0),
+                                 pad=0.05, shrink=1, aspect=90)
+            cb = plt.colorbar(mappable=Q, format='%.3f', ticks=plt.MaxNLocator(6),
+                              cax=cax, orientation='horizontal')
+            cb.solids.set_edgecolors("face")
+            cb.solids.set_rasterized(True)
+            pad = 1.1*M.max() or 0.25
+            xlimAx = np.max(np.abs(x0)) + pad
+            ylimAx = np.max(np.abs(y0)) + pad
+            xlim = xlim if xlim > xlimAx else xlimAx
+            ylim = ylim if ylim > ylimAx else ylimAx
+            ax[distCnt].set_aspect('equal')
+            ax[distCnt].set_title('Obj to ENPP : {} mm'.format(crImgIptsGrp[grp].attrs['obj_to_enpp']))
+        for distCnt in range(3):
+            ax[distCnt].set_xlim(-xlim, xlim)
+            ax[distCnt].set_ylim(-ylim, ylim)
+        #fig.tight_layout() causes eror
+        fig.text(0.009, 0.7, r'$\bf{y}\,\it{(mm)}$', fontsize=17, rotation='vertical')
+        fig.text(0.5, 0.35, r'$\bf{x}\,\it{(mm)}$', fontsize=17, rotation='horizontal')
+        tiltx = f['data/' + '{}'.format(tiltCnt).zfill(3)].attrs['tilt_x']
+        fig.text(0.45, 0.965, 
+                 r'$\alpha_x, \alpha_y = {}^o,{}^o$'.format(tiltx, 0.0), fontsize=19)
+        
+        print('Magnifications:', dgrp.attrs['mag'])
+
+iSelect = None # hack for now
+
+def show_stack(hdffile, what):
+    global iSelect
+    if iSelect:
+        iSelect.close()
+    imgdir = os.path.join(os.getcwd(), 'data', 'imgstack')
+    hdffile = os.path.join(imgdir, hdffile)
+    with hdf.File(hdffile, 'r') as f:
+        stackLen = len(f['data'])
+        iSelect = widgets.IntSlider(value=0, min=0, max=stackLen-1, step=1, 
+                                    description='ImageNum ({})'.format(stackLen), 
+                                    orientation='horizontal')
+        interact(what, hdffile=fixed(hdffile), tiltCnt=iSelect)
+
+#%% Data processing and registration
+
+def _get_homography_from_CR_intersects(f, tiltCnt=0):
+    """returns the homographies between all object-planes and the 
+    single image plane for the tilted (lens) configuration `tiltCnt`. 
+    
+    The homographies are computed from deviation of the chief ray 
+    intersects for the given tilt. The unit associated with the values
+    are in physical units (lens unit, mostly mm)
+    
+    Parameters
+    ----------
+    f : hDF5 file object
+        hdf5 file handle
+    tiltCnt : integer 
+        tilted configuration number  
+        
+    Returns
+    -------
+    Hcr : ndarray 
+        a (3, 3, n) ndarray where `n` represents the object plane number
+    """
+    pixsize = f.attrs['img_sim_pixel_size']
+    noTiltGrp = _get_zero_lens_tilt_sub_group(f).name
+    crImgIptsGrp = f['data/' + '{}'.format(tiltCnt).zfill(3) + '/cr_img_ipts']
+    # for all the object planes
+    Hstack = []
+    for distCnt, grp in enumerate(crImgIptsGrp):
+        xRef = f[noTiltGrp + '/cr_img_ipts/' + '{}'.format(distCnt).zfill(2) + '/x'] 
+        yRef = f[noTiltGrp + '/cr_img_ipts/' + '{}'.format(distCnt).zfill(2) + '/y']
+        x = crImgIptsGrp[grp]['x']
+        y = crImgIptsGrp[grp]['y']
+        fp = np.vstack((xRef, yRef))/pixsize
+        tp = np.vstack((x, y))/pixsize
+        H = get_homography2D(fp, tp)
+        Hstack.append(H)
+    return np.stack(Hstack, axis=2)
+
+
+def _get_registered_data(f, tiltCnt, method='crii'):
+    """register images and psf grid using `method`. 
+
+    Currently only `crii` (chiefray image plane intersects) is used
+
+    Parameters
+    ---------- 
+    f : object 
+        HDF5 file object 
+    tiltCnt : integer 
+        the integer position number of the subgroup in the HDF5 file 
+        containg the `image`, `psf` and `cr_img_ipts datum` for the particular 
+        tilted orientation of the lens. 
+    method : string 
+        'crii' supported currently 
+
+    Returns
+    ------- 
+    regImg : ndarray
+        registered image  
+    regPsf : ndarray or None
+        registered PSF grid (if PSF grid data exists) 
+    H : ndarray 
+        hompgraphy 
+    """
+    Hcr = _get_homography_from_CR_intersects(f, tiltCnt)
+    # TO DO ;; else other logic 
+    # test that the 3 homographies computed between the three object planes
+    # and the image plane are equal for at configuration of the lens tilt
+    assert (np.allclose(Hcr[:,:,0], Hcr[:,:,1]) and 
+            np.allclose(Hcr[:,:,0], Hcr[:,:,2]))
+    H = Hcr[:,:,0].copy()
+    # register image
+    dset = f['data/'+'{}'.format(tiltCnt).zfill(3)+'/image']
+    img = _memmap_ds(f.filename, dset)
+    rows, cols, _ = img.shape
+    ## perspective warp
+    regImg = cv2.warpPerspective(img, H, (cols, rows))
+    ## register psf
+    regPsf = None
+    dset = f['data/'+'{}'.format(tiltCnt).zfill(3)+'/psf']
+    img = _memmap_ds(f.filename, dset)
+    if img: # Not all files have actual PSF data
+        regPsf = cv2.warpPerspective(img, H, (cols, rows))
+    return regImg, regPsf, H
+
+
+def register_data(hdffile):
+    """register the images and psf grid in the file `hdffile`
+
+    The function creates a group called `registered_data` under the root 
+    group. The registered image, psf grid data, and corresponding homographies
+    are stored under subgroups with names as three digit numbers 
+
+    Parameters
+    ---------- 
+    hdffile : string 
+        file name with absolute path to the HDF5 file 
+
+    Returns
+    ------- 
+    None 
+
+    """
+    with hdf.File(hdffile, 'r+') as f:
+        stackLen = len(f['data'])
+        grp = f.create_group('registered_data')
+        for tiltCnt in range(stackLen):
+            subGrp = grp.create_group('{}'.format(tiltCnt).zfill(3))
+            regImg, regPsf, H = _get_registered_data(f, tiltCnt, method='crii')
+            tiltx = f['data/'+'{}'.format(tiltCnt).zfill(3)].attrs['tilt_x']
+            subGrp.create_dataset('image', data=regImg, dtype=np.uint8)
+            if regPsf:
+                subGrp.create_dataset('psf', data=regPsf, dtype=np.uint8)
+            else:
+                subGrp.create_dataset('psf', shape=regImg.shape, dtype=np.uint8)
+            subGrp.create_dataset('H', data=H, dtype=np.float64)
+            set_hdf5_attribs(subGrp, {'tilt_x': tiltx})
+    print('OK')
 
 if __name__ == '__main__':
     pass
