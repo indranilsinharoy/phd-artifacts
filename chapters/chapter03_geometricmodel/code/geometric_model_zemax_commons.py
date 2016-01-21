@@ -1952,5 +1952,18 @@ def register_data(hdffile):
             set_hdf5_attribs(subGrp, {'tilt_x': tiltx})
     print('OK')
 
+def save_registered_images(hdffile, savedir):
+    with hdf.File(hdffile, 'r') as f:
+        stackLen = len(f['registered_data'])
+        print('No. of images:', stackLen)
+        for tiltCnt in range(stackLen):
+            dset = f['registered_data/'+'{}'.format(tiltCnt).zfill(3)+'/image']
+            img = _memmap_ds(f.filename, dset)
+            imgname =  '{}'.format(tiltCnt).zfill(3) + '.png'
+            imgfilename = os.path.join(savedir, imgname)
+            imsave(imgfilename, img)
+    print('OK')
+        
+
 if __name__ == '__main__':
     pass

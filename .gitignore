@@ -65,7 +65,7 @@ docs/_build/
 code/scheimpflugimgmodel//.ipynb_checkpoints/
 code/exp_14_09_psf_measure/.ipynb_checkpoints/
 code/exp_14_10_img_field_shift_restore/.ipynb_checkpoints/
-
+chapters/chapter03_geometricmodel/code/data/imgstack/png_stack/
 
 # Specific files
 code/exp_14_09_psf_measure/zmxfiles/tilted image plane.CFG
@@ -80,3 +80,4 @@ basicScheimpflugImgSimulation-checkpoint.ipynb
 
 chapters/chapter03_geometricmodel/code/images/None
 *.hdf5
+
