@@ -1845,7 +1845,7 @@ def _get_homography_from_CR_intersects(f, tiltCnt=0):
     
     Parameters
     ----------
-    f : hDF5 file object
+    f : object
         hdf5 file handle
     tiltCnt : integer 
         tilted configuration number  
@@ -1875,7 +1875,7 @@ def _get_homography_from_CR_intersects(f, tiltCnt=0):
 def _get_registered_data(f, tiltCnt, method='crii'):
     """register images and psf grid using `method`. 
 
-    Currently only `crii` (chiefray image plane intersects) is used
+    Currently only `crii` (chief-ray image-plane intersects) is used
 
     Parameters
     ---------- 
@@ -1900,7 +1900,7 @@ def _get_registered_data(f, tiltCnt, method='crii'):
     Hcr = _get_homography_from_CR_intersects(f, tiltCnt)
     # TO DO ;; else other logic 
     # test that the 3 homographies computed between the three object planes
-    # and the image plane are equal for at configuration of the lens tilt
+    # and the image plane are equal for all configurations of the lens tilt
     assert (np.allclose(Hcr[:,:,0], Hcr[:,:,1]) and 
             np.allclose(Hcr[:,:,0], Hcr[:,:,2]))
     H = Hcr[:,:,0].copy()
