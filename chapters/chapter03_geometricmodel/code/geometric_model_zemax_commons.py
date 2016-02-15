@@ -1455,7 +1455,7 @@ def get_lens_plane_tilts(uo=1000, nearObj=800, farObj=1200, fl=24, num=10):
     """
     # TO DO
     print("TO IMPLEMENT")
-    return np.linspace(-5.0, 5.0, num).tolist()
+    return np.linspace(-6.0, 6.0, num).tolist()
 
 def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht, over, 
                            pupsam, imgsam, psfx, psfy, pixsize, xpix, ypix, aberr=2, 
@@ -1950,6 +1950,18 @@ def register_data(hdffile):
                 subGrp.create_dataset('psf', shape=regImg.shape, dtype=np.uint8)
             subGrp.create_dataset('H', data=H, dtype=np.float64)
             set_hdf5_attribs(subGrp, {'tilt_x': tiltx})
+    print('OK')
+
+def save_unregistered_images(hdffile, savedir):
+    with hdf.File(hdffile, 'r') as f:
+        stackLen = len(f['data'])
+        print('No. of images:', stackLen)
+        for tiltCnt in range(stackLen):
+            dset = f['data/'+'{}'.format(tiltCnt).zfill(3)+'/image']
+            img = _memmap_ds(f.filename, dset)
+            imgname =  '{}'.format(tiltCnt).zfill(3) + '.png'
+            imgfilename = os.path.join(savedir, imgname)
+            imsave(imgfilename, img)
     print('OK')
 
 def save_registered_images(hdffile, savedir):
