@@ -1,0 +1,23 @@
+Reference:
+
+1. http://www.osa.org/en-us/meetings/optics_and_photonics_congresses/imaging_and_applied_optics/computational_optical_sensing_and_imaging/submission_guidelines/#abstract
+
+
+35-word Abstract 
+================
+The 35-word abstract should be a brief summary of the work. If the submission is accepted for presentation, this 35-word abstract will be included in the Conference Program Book.
+
+3-page Summary. 
+==============
+Within the page limit, the author must include all text, including the 35-word abstract, title, authors, equations, tables, photographs, drawings, figures, and references. The text may be typed either single-spaced or double-spaced. Refrain from use of asterisk, job descriptions, or footnotes.
+
+Page Format: 8 ½-inch x 11-inch page and with 1-inch margins on all sides.
+
+
+Possible congress
+
+Imaging Systems and Applications (IS): http://www.osa.org/en-us/meetings/optics_and_photonics_congresses/imaging_and_applied_optics/imaging_systems_and_applications/
+
+
+we cannot rotate the sensor ..... why?  
+
