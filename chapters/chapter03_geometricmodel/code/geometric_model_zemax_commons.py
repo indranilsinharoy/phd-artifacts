@@ -1455,7 +1455,7 @@ def get_lens_plane_tilts(uo=1000, nearObj=800, farObj=1200, fl=24, num=10):
     """
     # TO DO
     print("TO IMPLEMENT")
-    return np.linspace(-6.0, 6.0, num).tolist()
+    return np.linspace(-8.0, 8.0, num).tolist()
 
 def focal_stack_lens_tilts(ln, cb1, tiltX, objsurfthick, objarr, fldarr, objht, over, 
                            pupsam, imgsam, psfx, psfy, pixsize, xpix, ypix, aberr=2, 
