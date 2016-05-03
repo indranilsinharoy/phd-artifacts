@@ -547,14 +547,9 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, pu
     if push:
         ln.zPushLens(1)
 
-def insert_cbs_to_tilt_lens(ln, lastSurf, firstSurf=2, pivot='ENPP', push=True):
+def insert_cbs_to_tilt_lens(ln, lastSurf, firstSurf=2, pivot='ENPP', offset=0, push=True):
     """function to insert appropriate coordinate break and dummy surfaces 
-    in the LDE for tilting the lens a pivot. 
-
-    The layout will display all the surfaces. This function is needed inspite
-    of the ln.zTiltDecenterElements() function because we all the cardinal  
-    and associated dummy surfaces in between, and the pivot point is generally 
-    not about the lens surface. 
+    in the LDE for tilting the lens about a pivot. 
     
     Parameters
     ----------
@@ -570,6 +565,8 @@ def insert_cbs_to_tilt_lens(ln, lastSurf, firstSurf=2, pivot='ENPP', push=True):
     pivot : string, optional 
         indicate the surface about which to rotate. Currently only ENPP 
         has been implemented
+    offset : real, optional
+        offset (in lens units) to offset the actual pivot point from the `pivot`
     push : bool
         push lens in the DDE server to the LDE
 
@@ -585,11 +582,16 @@ def insert_cbs_to_tilt_lens(ln, lastSurf, firstSurf=2, pivot='ENPP', push=True):
        pivot point.
     2. Check "skip rays to this surface" for the first and last dummy surfaces 
        inserted by this function.
+    3. The layout will display all the surfaces. This function is needed in spite 
+       of the `ln.zTiltDecenterElements()` function because it is designed to tilt
+       all the the cardinal and associated dummy surfaces in between that may appear
+       before or after the actual lens surfaces in the LDE. Also, the pivot point is 
+       generally not about the lens surface. 
 
     Assumptions (weak)
     -----------------
     The following assumptions need not be strictly followed.
-    1. Surface 0 is the object surface which may or may not be infinity 
+    1. Surface 0 is the object surface which may or may not be at infinity 
     2. Surface 1 is a dummy surface for seeing ray visibility.  
     """
     ln.zRemoveVariables()
@@ -601,18 +603,24 @@ def insert_cbs_to_tilt_lens(ln, lastSurf, firstSurf=2, pivot='ENPP', push=True):
         enpp = ln.zGetPupil().ENPP # distance of entrance pupil from surface 1
         enppInGRef = ln.zOperandValue('GLCZ', 1) + enpp
         firstSurfInGRef = ln.zOperandValue('GLCZ', firstSurf)
-        firstSurfToEnpp = enppInGRef - firstSurfInGRef
-        # insert dummy surface to move to the pivot position where the CB 
-        # will be applied 
-        insert_dummy_surface(ln, surf=firstSurf, thickness=firstSurfToEnpp, 
-                             semidia=0, comment='Move to ENPP')
+        firstSurfToPivot = enppInGRef - firstSurfInGRef + offset
+        cbFirstSurf = firstSurf + 1
+        # insert dummy surface to move to the pivot position where the CB will be applied 
+        cmtstr = 'Move to pivot (offset from ENPP)' if offset else 'Move to ENPP'
+        insert_dummy_surface(ln, surf=firstSurf, thickness=firstSurfToPivot, 
+                             semidia=0, comment=cmtstr)
+        lastSurf +=1
+        # insert dummy surface to show pivot ... 
+        insert_dummy_surface(ln, surf=firstSurf+1, thickness=0, semidia=1.0, comment='PIVOT')
+        cbFirstSurf +=1
+        lastSurf +=1
         # insert coordinate breaks
-        cb1, cb2, _ = ln.zTiltDecenterElements(firstSurf=firstSurf+1, lastSurf=lastSurf+1, 
+        cb1, cb2, _ = ln.zTiltDecenterElements(firstSurf=cbFirstSurf, lastSurf=lastSurf, 
                                                cbComment1='Lens tilt CB',
                                                cbComment2='Lens restore CB', 
                                                dummySemiDiaToZero=True)
         # set solve on cb1 surface to move back to firstSurf
-        ln.zSetSolve(firstSurf+1, ln.SOLVE_SPAR_THICK, ln.SOLVE_THICK_PICKUP, 
+        ln.zSetSolve(cb1, ln.SOLVE_SPAR_THICK, ln.SOLVE_THICK_PICKUP, 
                      firstSurf, -1.0, 0.0, 0)
 
     else:
