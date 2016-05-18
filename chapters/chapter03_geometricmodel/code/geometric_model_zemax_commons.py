@@ -449,7 +449,7 @@ def get_cardinal_points(ln):
     cardinals = co.namedtuple('cardinals', ['Fo', 'Fi', 'Ho', 'Hi'])
     return cardinals(fpObj, fpImg, ppObj, ppImg)
       
-def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, push=True):
+def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, push=True, printInfo=True):
     """Insert paraxial pupil and cardinal planes surfaces in the LDE for rendering in
     layout plots.
     
@@ -462,8 +462,11 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, pu
         inserted by this function. See Notes.
     cardinalSemiDia : float, optional 
         semidiameter of the cardinal surfaces. (Default=1.2) 
-    push : bool
+    push : bool, optional
         push lens in the DDE server to the LDE
+    printInfo : bool, optional
+        if True (default), the function also prints information about the 
+        locations of the cardinal planes and pupils
         
     Assumptions
     -----------
@@ -507,23 +510,15 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, pu
     insert_dummy_surface(ln, surf=1, thickness=firstDummySurfOff, semidia=0, comment='dummy 2 c rays')
     ln.zGetUpdate()
     # Draw Exit and Entrance pupil planes
-    print("Textual information about the planes:\n")
     expp = ln.zGetPupil().EXPP
-    print("Exit pupil distance from IMG:", expp)
     draw_plane(ln, 'img', expp, "EXPP")
-    
     enpp = ln.zGetPupil().ENPP
-    print("Entrance pupil from Surf 1 @ LDE:", enpp)
     draw_plane(ln, 'obj', enpp - firstDummySurfOff, "ENPP")
 
     # Get and draw the Principal planes
-    fpObj, fpImg, ppObj, ppImg = get_cardinal_points(ln)
-
-    print("Focal plane obj F from surf 1 @ LDE: ", fpObj, "\nFocal plane img F' from IMA: ", fpImg)
+    fpObj, fpImg, ppObj, ppImg = get_cardinal_points(ln)    
     draw_plane(ln,'img', fpImg, "F'", cardinalSemiDia)
     draw_plane(ln,'obj', fpObj - firstDummySurfOff, "F", cardinalSemiDia)
-    
-    print("Principal plane obj H from surf 1 @ LDE: ", ppObj, "\nPrincipal plane img H' from IMA: ", ppImg)
     draw_plane(ln,'img', ppImg, "H'", cardinalSemiDia)
     draw_plane(ln,'obj', ppObj - firstDummySurfOff, "H", cardinalSemiDia)
 
@@ -531,19 +526,25 @@ def draw_pupil_cardinal_planes(ln, firstDummySurfOff=40, cardinalSemiDia=1.2, pu
     ppObjToEnpp = ppObj - enpp
     ppImgToExpp = ppImg - expp
     focal = ln.zGetFirst().EFL
-    print("Focal length: ", focal)
-    print("Principal plane H to ENPP: ", ppObjToEnpp)
-    print("Principal plane H' to EXPP: ", ppImgToExpp)
     v = gaussian_lens_formula(u=ppObjToEnpp, v=None, f=focal).v
-    print("Principal plane H' to EXPP (abs.) "
-          "calc. using lens equ.: ", abs(v))
     ppObjTofpObj = ppObj - fpObj
     ppImgTofpImg = ppImg - fpImg
-    print("Principal plane H' to rear focal plane: ", ppObjTofpObj)
-    print("Principal plane H to front focal plane: ", ppImgTofpImg)
-    print(("""\nCheck "Skip rays to this surface" under "Draw Tab" of the """
-           """surface property for the dummy and cardinal plane surfaces. """
-           """See Docstring Notes for details."""))
+    
+    if printInfo:
+        print("Textual information about the planes:\n")
+        print("Exit pupil distance from IMG:", expp)
+        print("Entrance pupil from Surf 1 @ LDE:", enpp)
+        print("Focal plane obj F from surf 1 @ LDE: ", fpObj, "\nFocal plane img F' from IMA: ", fpImg)
+        print("Principal plane obj H from surf 1 @ LDE: ", ppObj, "\nPrincipal plane img H' from IMA: ", ppImg)
+        print("Focal length: ", focal)
+        print("Principal plane H to ENPP: ", ppObjToEnpp)
+        print("Principal plane H' to EXPP: ", ppImgToExpp)
+        print("Principal plane H' to EXPP (abs.) calc. using lens equ.: ", abs(v))
+        print("Principal plane H' to rear focal plane: ", ppObjTofpObj)
+        print("Principal plane H to front focal plane: ", ppImgTofpImg)
+        print(("""\nCheck "Skip rays to this surface" under "Draw Tab" of the """
+               """surface property for the dummy and cardinal plane surfaces. """
+               """See Docstring Notes for details."""))
     if push:
         ln.zPushLens(1)
 
@@ -563,8 +564,8 @@ def insert_cbs_to_tilt_lens(ln, lastSurf, firstSurf=2, pivot='ENPP', offset=0, p
         Generally, this surface is 2 (the dummy surface preceding the 
         object side principal plane H)    
     pivot : string, optional 
-        indicate the surface about which to rotate. Currently only ENPP 
-        has been implemented
+        indicate the surface about which to rotate the lens group. Currently only 
+        ENPP (with an offset from the ENPP) has been implemented
     offset : real, optional
         offset (in lens units) to offset the actual pivot point from the `pivot`
     push : bool
@@ -586,7 +587,9 @@ def insert_cbs_to_tilt_lens(ln, lastSurf, firstSurf=2, pivot='ENPP', offset=0, p
        of the `ln.zTiltDecenterElements()` function because it is designed to tilt
        all the the cardinal and associated dummy surfaces in between that may appear
        before or after the actual lens surfaces in the LDE. Also, the pivot point is 
-       generally not about the lens surface. 
+       generally not about the lens surface.
+    4. Use this function to rotate the lens group about a pivot point (PIVOT). To 
+       rotate the image plane use a CB infront of the IMA surface. 
 
     Assumptions (weak)
     -----------------
