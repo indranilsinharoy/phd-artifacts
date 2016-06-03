@@ -264,7 +264,8 @@ def gaussian_lens_formula(u=None, v=None, f=None, infinity=10e20):
 
     Notes
     ----- 
-    Both object and image distances are considered positive.   
+    1. Both object and image distances are considered positive.  
+    2. Assumes frontoparallel configuration 
 
     Examples
     --------
@@ -300,6 +301,69 @@ def gaussian_lens_formula(u=None, v=None, f=None, infinity=10e20):
         else:
             v = unknown_distance(u, f)
     return glfParams(u, v, f)
+
+
+def pupil_centric_lens_formula(u=None, v=None, f=None, mp=1, infinity=10e20):
+    """return the third value of the pupil centric lens formula, given any two
+
+    Parameters
+    ----------
+    u : float, optional
+        object distance from entrance pupil position 
+    v : float, optional
+        image (geometrical focus) distance from exit pupil position
+    f : float, optional
+        focal length
+    mp : float, optional 
+        pupil magnification
+    infinity : float
+        numerical value to represent infinity (default=10e20)
+
+    Returns
+    -------
+    pclfParams : namedtuple
+        named tuple containing the Pupil Centric Lens Formula parameters
+
+    Notes
+    ----- 
+    1. Both object and image distances are considered positive.
+    2. Assumes frontoparallel configuration
+    3. The pupil magnification (mp) is the ratio of the paraxial exit pupil size 
+       to the paraxial entrance pupil size    
+
+    Examples
+    --------
+    >>> pupil_centric_lens_formula(u=1016.0, v=None, f=24)
+    pclfParams(u=1016.0, v=24.580645161290324, f=24.0)
+    >>> pupil_centric_lens_formula(u=1016.0, v=24.58064516129, f=None)
+    pclfParams(u=1016.0, v=24.58064516129, f=23.999999999999694)
+    >>> pupil_centric_lens_formula(u=504.0, v=None, f=24.0, mp=2.0)
+    pclfParams(u=504.0, v=49.170731707317074, f=24.0)
+    >>> pupil_centric_lens_formula(u=535.6319, v=None, f=24.0, mp=0.55)
+    pclfParams(u=535.6319, v=14.370742328796812, f=24.0)
+    """
+    pclfParams = co.namedtuple('pclfParams', ['u', 'v', 'f'])
+
+    if sum(i is None for i in [u, v, f]) > 1:
+        raise ValueError('At most only one parameter out of u, v & f can be None')
+
+    if f is None:
+        if not u or not v:
+            raise ValueError('f cannot be determined from input')
+        else:
+            f = (mp*u*v)/(mp**2 * u + v)
+    else:
+        if u is None:
+            try:
+                u = (1.0/mp)*(v*f)/(v - mp*f)
+            except ZeroDivisionError:
+                u = infinity
+        else:
+            try:
+                v = (mp**2 * f * u)/(mp * u - f)
+            except ZeroDivisionError:
+                v = infinity
+    return pclfParams(u, v, f)
 
 
 #%% Helper functions to draw the cardinal and pupil planes
