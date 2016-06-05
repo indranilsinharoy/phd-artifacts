@@ -30,12 +30,6 @@ import time as time
 from scipy.misc import imsave 
 from iutils.cv.transforms import get_homography2D, get_affine2D
 
-
-__all__ = ['draw_pupil_cardinal_planes', 'focal_stack_fronto_parallel', 'focal_stack_lens_tilts',
-           'get_detector_settings', 'get_image_plane_shifts', 'get_lens_plane_tilts',
-           'get_min_max_PSF_size', 'image_sampling', 'insert_cbs_to_tilt_lens',
-           'obj_field_height', 'plot_chiefray_intersects', 'show_around', 'show_grid_distortion',]
-
 # global variable
 _initTime = 0.0
 
@@ -801,7 +795,7 @@ def get_chief_ray_intersects(n=11, real=True, surf=-1):
     return x, y, z, err, vig 
 
 def plot_chiefray_intersects(ln, cb, tiltXY, pushNewLens=True):
-    """plot chiefray intersects for various rotations of the lens about a pivot point.
+    """plot chief-ray intersects for various rotations of the lens about a pivot point.
     
     Parameters
     ----------
@@ -820,7 +814,7 @@ def plot_chiefray_intersects(ln, cb, tiltXY, pushNewLens=True):
         
     Returns
     -------
-    None : plot
+    None : matplotlib figure
 
     Notes
     -----
@@ -866,8 +860,8 @@ def plot_chiefray_intersects(ln, cb, tiltXY, pushNewLens=True):
         ln.zPushLens(1)
     ax.set_aspect('equal')
     ax.axis('tight')
-    ax.set_ylabel(r'$\bf{y}\,\it{(mm)}$', fontsize=15)
-    ax.set_xlabel(r'$\bf{x}\,\it{(mm)}$', fontsize=15)
+    ax.set_ylabel(r'$\bf{\acute{y}}\,\it{(mm)}$', fontsize=15)
+    ax.set_xlabel(r'$\bf{\acute{x}}\,\it{(mm)}$', fontsize=15)
     ax.legend(fontsize=14, scatterpoints=1, markerscale=1., scatteryoffsets=[0.5], mode='expand',
               ncol=len(tiltXY), loc='upper left', bbox_to_anchor=(0.09, 0.965, 0.84, 0.005), 
               bbox_transform=fig.transFigure, handletextpad=0.5, handlelength=0.9)
