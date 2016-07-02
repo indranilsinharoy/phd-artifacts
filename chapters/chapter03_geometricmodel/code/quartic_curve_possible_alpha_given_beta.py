@@ -11,6 +11,7 @@
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 from __future__ import division, print_function
+import os
 import numpy as np
 import mayavi.mlab as mlab
 from iutils.py.general import approx_equal
@@ -28,6 +29,7 @@ arctand = lambda x : np.rad2deg(np.arctan(x))
 EXP_SETTINGS = False  # if False, then settings for saved system for thesis figure will be used
 ZOOM_ON = False
 SHOW_ALPHA_THIN = False
+SAVE_FIGURE = True
 
 if EXP_SETTINGS:
     f = 50.0                 
@@ -35,15 +37,16 @@ if EXP_SETTINGS:
     zo = -1000.0
     de = -5.0             
     alphaArr = [-5, 20.0]            
-else:
+else:  # for plot @ thesis / presentations
     f = 50.0                # focal length
-    mpArr = [0.15, 0.5, 1.0, 2.0]  # pupil magnification   Should include 0.1
+    mpArr = [0.15, 0.5, 1.0, 2.0]  # pupil magnification   Should include 0.1??
+    #mpArr = [2.0 ]   # pupil magnification   Should include 0.1
     zo = -1000.0             # object plane distance along z-axis from camera center  
     de = -5.0    
     alphaArr = [-5.0, 20.0]  # True (known) lens rotation angles             
 
 # Plot 
-figw = mlab.figure(1, bgcolor=(0.2, 0.2, 0.2), size=(800, 800))
+figw = mlab.figure(1, bgcolor=(0.2, 0.2, 0.2), size=(1000, 1000))
 figw.scene.parallel_projection=True
 figw.scene.z_plus_view()
 
@@ -102,11 +105,23 @@ for alpha in alphaArr:
     ##TODO!
     # plot the valid point of intersection i.e. (cos(α), sin(α))
     ptsScale = 0.1 if ZOOM_ON else 0.15
-    pcol = (0., 0.3, 1) if alpha > 0 else (0, 1, 0.1) 
+    pcol = (0/255., 70/255, 1) if alpha > 0 else (0, 1, 0.1) 
     mlab.points3d([x,], [y,], [0,], scale_factor=ptsScale, color=pcol, mode='sphere', resolution=20)    
     # since magnitude of y (and x) and less then 1, the offset in y is some fraction of 1/y
     mlab.text(x + 0.15, y + np.sign(y)*abs(0.01/y), z=0, 
               text='{}'.format(alpha).zfill(4), width=0.035, color=(1, 1, 0))
+    # Label the cuves with the appropriate values of pupil magnification (this is manual for now)
+    if ~EXP_SETTINGS:
+        mplabelwidth = 0.03
+        mlab.text(x=0.06, y=-2.5, z=0, text='{:2.2f}'.format(0.15).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # -alpha
+        mlab.text(x=0.06, y=1.02, z=0, text='{:2.2f}'.format(0.15).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # +alpha
+        mlab.text(x=0.06, y=-3.85, z=0, text='{:2.2f}'.format(0.5).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # -alpha
+        mlab.text(x=0.06, y=1.55, z=0, text='{:2.2f}'.format(0.5).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # +alpha
+        mlab.text(x=0.06, y=-4.4, z=0, text='{:2.2f}'.format(1.0).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # -alpha
+        mlab.text(x=0.06, y=2.08, z=0, text='{:2.2f}'.format(1.0).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # +alpha
+        mlab.text(x=0.06, y=-4.7, z=0, text='{:2.2f}'.format(2.0).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # -alpha
+        mlab.text(x=0.06, y=2.52, z=0, text='{:2.2f}'.format(2.0).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # +alpha
+
     # 
     if SHOW_ALPHA_THIN:
         alphaThin = -arcsind(f*tanBeta/zo)
@@ -125,6 +140,11 @@ if ZOOM_ON:
     #print(cam.parallel_scale)
 else:
     cam.parallel_scale = 5.5
+    
+if SAVE_FIGURE:
+    cdir = os.getcwd()
+    fname = os.path.join(cdir, 'images', 'alpha_beta_for_lens_pivot_away_enpp.png')
+    mlab.savefig(fname)
     
 mlab.show()
 # To see

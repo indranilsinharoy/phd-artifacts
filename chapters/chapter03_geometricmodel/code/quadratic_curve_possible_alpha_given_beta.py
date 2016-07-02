@@ -11,6 +11,7 @@
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 from __future__ import division, print_function
+import os
 import numpy as np
 import mayavi.mlab as mlab
 from iutils.py.general import approx_equal
@@ -28,6 +29,7 @@ arctand = lambda x : np.rad2deg(np.arctan(x))
 EXP_SETTINGS = False  # if False, then settings for saved system for thesis figure will be used
 ZOOM_ON = False
 SHOW_ALPHA_THIN = False
+SAVE_FIGURE = True
 
 if EXP_SETTINGS:
     #fl = 50.0
@@ -47,7 +49,7 @@ else:
     alphaArr = [-5.0, 20.0]  # True (known) lens rotation angles             
 
 # Plot 
-figw = mlab.figure(1, bgcolor=(0.2, 0.2, 0.2), size=(800, 800))
+figw = mlab.figure(1, bgcolor=(0.2, 0.2, 0.2), size=(1000, 1000))
 figw.scene.parallel_projection=True
 figw.scene.z_plus_view()
 
@@ -55,7 +57,7 @@ figw.scene.z_plus_view()
 if EXP_SETTINGS:
     pass
 else:
-    plotExtents = (-9.5, 9.5, -9.5, 8.9, 0, 0)
+    plotExtents = (-9.5, 9.5, -11.95, 6.8, 0, 0)   #(-9.5, 9.5, -9.5, 8.9, 0, 0)
     drawOriginAxes(plotExtents, displace=None, colAxes=False, cones=True, 
                    xaxis=True, yaxis=True, zaxis=False, opacity=0.5, scale_arrow_width=1.0, 
                    scale_label=1, label_color=(0.75, 0.75, 0.75), visible=True, cone_scale_factor=0.5,
@@ -111,22 +113,22 @@ for alpha in alphaArr:
         col = (58/255, 154/255, 255/255) if alpha > 0 else (0/255, 167/255, 101/255)         
         implicit_plot('{a}*x**2 + {b}*x*y + {c}*y**2 + {d}*x + {e}*y + {f}'
                      .format(a=a, b=b, c=c, d=d, e=e, f=f),
-                       (-10, 10, -10, 10, -0.0, 0.0), fig_handle=figw, col_isurf=col,
+                       (-9, 9, -12, 9, -0.0, 0.0), fig_handle=figw, col_isurf=col,
                        Nx=1001, Ny=1001, Nz=1, opaque=False, opa_val=1.0 - i/(1.01*num_mp), 
                        ori_axis=False)
         # y-intercepts of the curve assuming f=0 is y=-e/c. If f≠0, then there will be
         # two y-intercepts given by cy² + ey + f = 0
         if EXP_SETTINGS:
             mplabel = '{:3.2f}'.format(mp)
-            mplabelwidth = 0.03
+            mplabelwidth = 0.04
         else:
-            mplabel = '{:2.1f}'.format(mp)
-            mplabelwidth = 0.0235
+            mplabel = '{:2.2f}'.format(mp)
+            mplabelwidth = 0.03
         mlab.text(x=0.06, y=-e/c + np.sign(alpha)*0.005*e/c, z=0, text=mplabel, 
                   width=mplabelwidth, color=(0.95,0.95,0.95))
     # plot the valid point of intersection i.e. (cos(α), sin(α))
     ptsScale = 0.1 if ZOOM_ON else 0.2
-    pcol = (0., 0.3, 1) if alpha > 0 else (0, 1, 0.1) 
+    pcol = (0/255., 70/255, 1) if alpha > 0 else (0, 1, 0.1) 
     mlab.points3d([x,], [y,], [0,], scale_factor=ptsScale, color=pcol, mode='sphere', resolution=20)    
     # since magnitude of y (and x) and less then 1, the offset in y is some fraction of 1/y
     mlab.text(x + 0.15, y + np.sign(y)*abs(0.03/y), z=0, 
@@ -145,10 +147,15 @@ implicit_plot('x**2 + y**2 - {f}'.format(f=1),
 
 cam = figw.scene.camera
 if ZOOM_ON:    
-    cam.parallel_scale = 2   # less is more
+    cam.parallel_scale = 2   # less is more zoom
     #print(cam.parallel_scale)
 else:
     cam.parallel_scale = 9.5
+    
+if SAVE_FIGURE:
+    cdir = os.getcwd()
+    fname = os.path.join(cdir, 'images', 'alpha_beta_for_lens_pivot_about_enpp.png')
+    mlab.savefig(fname)
     
 mlab.show()
 
