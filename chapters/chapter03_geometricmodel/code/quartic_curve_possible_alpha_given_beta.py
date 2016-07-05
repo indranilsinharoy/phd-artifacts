@@ -33,17 +33,41 @@ SAVE_FIGURE = True
 
 if EXP_SETTINGS:
     f = 50.0                 
-    mpArr = [0.15, 0.55, 1.0, 2.0]   
+    mpArr = [0.15,]# 1.0, 2.0]   
     zo = -1000.0
-    de = -5.0             
-    alphaArr = [-5, 20.0]            
+    de = -5.0
+    deDash = -25.0             
+    alphaArr = [-5.0, 20.0]            
 else:  # for plot @ thesis / presentations
     f = 50.0                # focal length
     mpArr = [0.15, 0.5, 1.0, 2.0]  # pupil magnification   Should include 0.1??
     #mpArr = [2.0 ]   # pupil magnification   Should include 0.1
     zo = -1000.0             # object plane distance along z-axis from camera center  
-    de = -5.0    
-    alphaArr = [-5.0, 20.0]  # True (known) lens rotation angles             
+    de = -5.0
+    deDash = -25.0    
+    alphaArr = [-5.0, 20.0]  # True (known) lens rotation angles 
+
+
+#! Other functions
+def get_zoDash(zo, alpha, beta, f, mp, de, deDash):
+    """compute image plane distance (along z-axis of {C})
+    """
+    c = cosd(alpha)
+    s = sind(alpha)
+    t = tand(beta)
+    z = zo - de*(s*t + c)
+    numr = mp*f*(mp*c**2 + s**2)*z
+    deno = mp*c*z + f
+    return deDash*c + numr/deno 
+
+def get_beta(de, zo, f, mp, alpha):
+    """compute the object tilt angle (orientation of PoSF) for lens tilted about the x-axis
+    """
+    c = cosd(alpha)
+    s = sind(alpha)
+    numr = s*( mp*(zo - de*c) + f*(1 - mp)*c)
+    deno = (f - mp*de*s**2)*(mp*c**2 + s**2) + de*mp*(1-mp)*(s**2)*(c**2)
+    return -arctand(numr/deno)           
 
 # Plot 
 figw = mlab.figure(1, bgcolor=(0.2, 0.2, 0.2), size=(1000, 1000))
@@ -52,7 +76,9 @@ figw.scene.z_plus_view()
 
 # draw the axes
 if EXP_SETTINGS:
-    pass
+        caxis = mlab.points3d(0.0, 0.0, 0.0, mode='axes', color=(0.6, 0.6, 0.6), line_width=1.0,
+                              scale_factor=2., opacity=0.5)
+        caxis.actor.property.lighting = False
 else:
     plotExtents = (-5.5, 5.5, -5.5, 5.5, 0, 0)
     drawOriginAxes(plotExtents, displace=None, colAxes=False, cones=True, 
@@ -76,7 +102,7 @@ for alpha in alphaArr:
         numr = -y*(mp*(zo - de*x) + f*(1-mp)*x)
         deno = (f - mp*de*y**2)*(mp*x**2 + y**2) + mp*(1 - mp)*de*(y**2)*(x**2)
         tanBeta = numr/deno
-        #print('beta = ', arctand(tanBeta))
+        print('alpha = {}, mp= {}, beta = {}'.format(alpha, mp, arctand(tanBeta)))
         A = 0                          # x⁴ term 
         B = mp*de*tanBeta              # y⁴ term        
         C = 0                          # x³y term  
@@ -111,7 +137,7 @@ for alpha in alphaArr:
     mlab.text(x + 0.15, y + np.sign(y)*abs(0.01/y), z=0, 
               text='{}'.format(alpha).zfill(4), width=0.035, color=(1, 1, 0))
     # Label the cuves with the appropriate values of pupil magnification (this is manual for now)
-    if ~EXP_SETTINGS:
+    if not EXP_SETTINGS:
         mplabelwidth = 0.03
         mlab.text(x=0.06, y=-2.5, z=0, text='{:2.2f}'.format(0.15).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # -alpha
         mlab.text(x=0.06, y=1.02, z=0, text='{:2.2f}'.format(0.15).zfill(3), width=mplabelwidth, color=(0.95,0.95,0.95)) # +alpha
@@ -133,6 +159,22 @@ for alpha in alphaArr:
 implicit_plot('x**2 + y**2 - {f}'.format(f=1),
                (-2, 2, -2, 2, -0.0, 0.0), fig_handle=figw, col_isurf=(255/255, 66/255, 122/255),
                Nx=1001, Ny=1001, Nz=1, opaque=False, opa_val=1.0, ori_axis=False)
+               
+# Other intersection point for mp=0.15 .... how to eliminate it?
+# The following sub-section code is completely manual right now.
+if not EXP_SETTINGS:
+    alphaOther = 39.1173465 #37.5427
+    alphaDesired = 20.0
+    mp = 0.15            
+    mlab.points3d([cosd(alphaOther),], [sind(alphaOther),], [0,], scale_factor=0.12, color=(1, 0.2, 0.2), 
+                  mode='2dcross', resolution=20)
+    beta = get_beta(de, zo, f, mp, alphaDesired)
+    zoDash = get_zoDash(zo, alphaOther, beta, f, mp, de, deDash)
+    print('Examination of other intersection point:')
+    print('beta =', beta)
+    print('zoDash =', zoDash)
+    betaOther = get_beta(de, zo, f, mp, alphaOther)
+    print('betaOther =', betaOther)
 
 cam = figw.scene.camera
 if ZOOM_ON:
@@ -141,7 +183,7 @@ if ZOOM_ON:
 else:
     cam.parallel_scale = 5.5
     
-if SAVE_FIGURE:
+if SAVE_FIGURE and not EXP_SETTINGS:
     cdir = os.getcwd()
     fname = os.path.join(cdir, 'images', 'alpha_beta_for_lens_pivot_away_enpp.png')
     mlab.savefig(fname)

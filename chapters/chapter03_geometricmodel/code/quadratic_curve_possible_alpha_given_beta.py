@@ -26,25 +26,21 @@ arccosd = lambda x : np.rad2deg(np.arccos(x))
 arctand = lambda x : np.rad2deg(np.arctan(x))
 
 # exploratory/ experimental settings?
-EXP_SETTINGS = False  # if False, then settings for saved system for thesis figure will be used
+EXP_SETTINGS = True  # if False, then settings for saved system for thesis figure will be used
 ZOOM_ON = False
 SHOW_ALPHA_THIN = False
-SAVE_FIGURE = True
+SAVE_FIGURE = False
 
 if EXP_SETTINGS:
-    #fl = 50.0
+    fl = 24.0
     #mpArr = [1, 3, 5, 7, 10] # all mp >= 1 ;; nothing remarkable happening. The ellipses gets bigger, the rate is proportional to the inverse of the absolute angle
-    #mpArr = [0.05, 0.2, 0.3, 0.5, 0.7, 1]  # 0.2 <= mp <=1;;
+    mpArr = [0.15, 0.37, 0.3735, 0.5, 1]  # 0.2 <= mp <=1;;
     #mpArr = [0.1393480566117447, ]   # parabola for alpha = -5.0° 
-    #zo = -1000.0
-    #alphaArr = [-5.0, 20.0]
-    #zo=-539.359427021; fl=89.8074019381; mpArr=[0.155474178, ]; alphaArr=[-6.10160377014, ];
-    zo=-928.149214632; fl=54.8193565806; mpArr=[0.108342986115, ]; alphaArr=[-27.0718326653, ]; # very peculiar case ...
-    #zo=-1079.87808266; fl=58.416738787; mpArr=[0.101679253101, ]; alphaArr=[-28.4685848773, ]    
-    #zo=-655.674286325; fl=81.6602220572; mpArr=[0.0441952155845, ]; alphaArr=[-14.6948487664, ];  # invalid condition             
+    zo = -509.0
+    alphaArr = [-5.0, 20.0]
 else:
     fl = 50.0                # focal length
-    mpArr = [0.15, 0.5, 1.0, 2.0]  # pupil magnification   Should include 0.1
+    mpArr = [0.15, 0.5, 1.0, 2.0]  # pupil magnification   
     zo = -1000.0             # object plane distance along z-axis from camera center  
     alphaArr = [-5.0, 20.0]  # True (known) lens rotation angles             
 
@@ -55,7 +51,9 @@ figw.scene.z_plus_view()
 
 # draw the axes
 if EXP_SETTINGS:
-    pass
+    caxis = mlab.points3d(0.0, 0.0, 0.0, mode='axes', color=(0.6, 0.6, 0.6), line_width=1.0,
+                          scale_factor=2., opacity=0.5)
+    caxis.actor.property.lighting = False
 else:
     plotExtents = (-9.5, 9.5, -11.95, 6.8, 0, 0)   #(-9.5, 9.5, -9.5, 8.9, 0, 0)
     drawOriginAxes(plotExtents, displace=None, colAxes=False, cones=True, 

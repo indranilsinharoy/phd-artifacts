@@ -14,20 +14,22 @@ import numpy as np
 import mayavi.mlab as mlab
 from iutils.plot.mayaviutils import implicit_plot, drawOriginAxes
 
-
-# Plot 
+#%% Figure settings 
 figw = mlab.figure(1, bgcolor=(0.2, 0.2, 0.2), size=(800, 800))
 figw.scene.parallel_projection=True
 figw.scene.z_plus_view()
 
 # draw the axes 
-plotExtents = (-2, 2, -2, 2, 0, 0)
-drawOriginAxes(plotExtents, displace=None, colAxes=False, cones=True, 
+axisExt = (-2, 2, -2, 2, 0, 0)
+drawOriginAxes(axisExt, displace=None, colAxes=False, cones=True, 
                xaxis=True, yaxis=True, zaxis=False, opacity=0.75, scale_arrow_width=1.0, 
                scale_label=.05, label_color=(0.75, 0.75, 0.75), visible=True, cone_scale_factor=0.2,
                axis_mono_col=(1.0, 0.2588, 0.4784), axis_tube_radius=0.005)
 
+# Default plotting grid extent (overwrite explicitly for each curve as required)
+plotExt = (-25, 25, -25, 25, -0.0, 0.0)
 
+#%% Quadratic plane curve definitions
 # coefficients of the general quadratic curve: 
 # Ax⁴ + By⁴ + Cx³y + Dx²y² + Exy³ + Fx³ + Gy³ + Hx²y + Ixy² + Jx² + Ky² + Lxy + Mx + Ny + P = 0
 #A=0; B=1; C=0; D=1; E=0; F=0; G=0; H=0; I=0; J=1; K=1; L=1; M=0; N=1; P = 0; # 
@@ -69,15 +71,49 @@ A=0; B=0; C=0; D=0; E=0; F=0; G=0; H=0; I=0; J=0; K=0; L=0; M=0; N=0; P=0;
 
 # 6. Bullet-nose curve (https://en.wikipedia.org/wiki/Bullet-nose_curve)
 #    Implicit equation: a²y² - b²x² = x²y²
-a=1.0; b=1.0; D=1; J=b**2; K=-a**2;  
+#a=1.0; b=1.0; D=1; J=b**2; K=-a**2; 
+
+# 7. Cardioid curve (https://en.wikipedia.org/wiki/Cardioid)
+#    Implicit equation: (x² + y² + ax)² = a²(x² + y²)
+#a=1.0; A=1; B=1; D=2; F=2*a; I=2*a; K=-a**2;
+
+# 9. Folium or Kepler's folium (http://mathworld.wolfram.com/Folium.html)
+#    Implicit equation: x⁴ + y⁴ + 2x²y² + bx³ + (b-4a)xy² = 0 
+#a=1; b=4;  plotExt = (-6, 6, -6, 6, 0, 0)    # Single folium: b >= 4a
+#a=1; b=0;  plotExt = (-2, 2, -2, 2, 0, 0)    # Bifolium: b/a = 0
+#a=1; b=1; plotExt = (-2, 2, -2, 2, 0, 0)    # Trifolium: 0 < b < 4a
+#a=1; b=2; plotExt = (-2, 2, -2, 2, 0, 0)     # Trefoil
+#a=-1; b=-2; plotExt = (-2, 2, -2, 2, 0, 0)     # Trefoil
+#A=1; B=1; D=2; F=b; I=(b-4*a); 
+
+#10. Folium of Descartes (http://mathworld.wolfram.com/FoliumofDescartes.html)
+#    Polar equation: r = (3a.secθ.tanθ)/(1 + tan³θ)
+#    Implicit equation: x³ + y³ = 3axy
+#a=1; F=1; G=1; L=-3*a; plotExt = (-2, 2, -2, 2, 0, 0)
+
+# x. Swastika curve (http://mathworld.wolfram.com/SwastikaCurve.html)
+#    Implicit equation: y⁴ - x⁴ = xy
+#A=1; B=-1; L=-1; plotExt = (-3, 3, -3, 3, 0, 0)
+
+# x. Unknown (variation of Swastika curve) 
+#    Implicit equation: y⁴ + x⁴ = xy
+#A=1; B=1; L=-1; plotExt = (-3, 3, -3, 3, 0, 0)
+
+# x.  
+#    Implicit equation: y⁴ + x⁴ = xy + 1
+#A=1; B=1; L=-1; P=-1; plotExt = (-3, 3, -3, 3, 0, 0)
+
+# x.
+#    Implicit equation: y⁴ + x⁴ = 1
+A=1; B=1; P=-1; plotExt = (-3, 3, -3, 3, 0, 0)
 
 
-# plot the implicit curve
+#%% plot the implicit curve
 col = (58/255, 154/255, 255/255)    #if alpha > 0 else (0/255, 167/255, 101/255)         
 implicit_plot(("{A}*x**4 + {B}*y**4 + {C}*x**3*y + {D}*x**2*y**2 + {E}*x*y**3 + {F}*x**3 + {G}*y**3 + "
                "{H}*x**2*y + {I}*x*y**2 + {J}*x**2 + {K}*y**2 + {L}*x*y + {M}*x + {N}*y + {P}"
               .format(A=A, B=B, C=C, D=D, E=E, F=F, G=G, H=H, I=I, J=J, K=K, L=L, M=M, N=N, P=P)),
-               (-25, 25, -25, 25, -0.0, 0.0), fig_handle=figw, col_isurf=col,
+               plotExt, fig_handle=figw, col_isurf=col,
                Nx=1001, Ny=1001, Nz=1, opaque=False, opa_val=1.0, ori_axis=False)
 
               
