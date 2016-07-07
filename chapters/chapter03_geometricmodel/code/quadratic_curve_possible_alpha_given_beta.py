@@ -17,7 +17,7 @@ import mayavi.mlab as mlab
 from iutils.py.general import approx_equal
 from iutils.plot.mayaviutils import implicit_plot, drawOriginAxes
 
-# helper functions
+# Helper functions
 sind = lambda x : np.sin(np.deg2rad(x))
 cosd = lambda x : np.cos(np.deg2rad(x))
 tand = lambda x : np.tan(np.deg2rad(x))
@@ -26,25 +26,68 @@ arccosd = lambda x : np.rad2deg(np.arccos(x))
 arctand = lambda x : np.rad2deg(np.arctan(x))
 
 # exploratory/ experimental settings?
-EXP_SETTINGS = True  # if False, then settings for saved system for thesis figure will be used
+EXP_SETTINGS = False  # if False, then settings for saved system for thesis figure will be used
 ZOOM_ON = False
 SHOW_ALPHA_THIN = False
 SAVE_FIGURE = False
 
+#%%
+
 if EXP_SETTINGS:
     fl = 24.0
     #mpArr = [1, 3, 5, 7, 10] # all mp >= 1 ;; nothing remarkable happening. The ellipses gets bigger, the rate is proportional to the inverse of the absolute angle
-    mpArr = [0.15, 0.37, 0.3735, 0.5, 1]  # 0.2 <= mp <=1;;
-    #mpArr = [0.1393480566117447, ]   # parabola for alpha = -5.0° 
+    #mpArr = [0.15, 0.37, 0.3735, 0.5, 1]  # 0.2 <= mp <=1;;
+    #mpArr = [0.3735, ]   # parabola for alpha = -5.0° 
     zo = -509.0
     alphaArr = [-5.0, 20.0]
 else:
-    fl = 50.0                # focal length
-    mpArr = [0.15, 0.5, 1.0, 2.0]  # pupil magnification   
-    zo = -1000.0             # object plane distance along z-axis from camera center  
-    alphaArr = [-5.0, 20.0]  # True (known) lens rotation angles             
+    fl = 24.0                      # focal length
+    mpArr = [0.38, 0.5, 1.0, 2.0]  # pupil magnification   
+    zo = -509.0                    # object plane distance along z-axis from camera center  
+    alphaArr = [-5.0, 20.0]        # True (known) lens rotation angles             
 
-# Plot 
+
+#%% Ensure that conditions are met
+def get_zoDash2(zo, f, mp, d, alpha):
+    """formula for computing the image plane distance from the pivot 
+    (origin of {C}) if lens is tilted about the ENPP. i.e. de=0, deDash=d
+
+    Assuming zo is numerically negative,
+        o zoDash is +ve if |zo*mp*c| > f; image is real and inverted
+        o zoDash is  ∞  if |zo*mp*c| = f
+        o zoDash is -ve if |zo*mp*c| < f
+    """
+    c = cosd(alpha)
+    s = sind(alpha)
+    return d*c + mp*f*zo*(mp*c**2 + s**2)/(zo*mp*c + f)
+
+def roots_first_derivative_Falpha(zo, f, mp):
+    """returns the roots and discriminant of F'(alpha)
+    
+    It is assumed that the lens is rotated about the ENPP. Therefore, 
+    the first derivative is a cubic equation in cos(alpha)
+    """
+    a = -mp*(1 - mp)*zo
+    b = -f*(1 - mp**2)
+    c = mp*(1 - 2*mp)*zo
+    d = f*(1 - mp)
+    roots = np.roots([a, b, c, d])
+    discriminant = (b**2)*(c**2) - 4*a*(c**3) - 4*(b**3)*d - 27*(a**2)*(d**2) + 18*a*b*c*d
+    return roots, discriminant
+
+def first_derivative_has_real_roots(zo, f, mp, alpha0=-89.0, alpha1=89.0):
+    """returns True if the first derivative of the function F(alpha) have real roots 
+    within the valid range of angles     
+    
+    If the function returns True, then F(\alpha) is NOT a monotonically increasing/decreasing 
+    function and hence we will get two alpha for which the have the same beta
+    """
+    roots, disc = roots_first_derivative_Falpha(zo, f, mp)
+    roots = np.array([arccosd(np.real(root)) for root in roots if np.isreal(root) and abs(root) <= 1.0])
+    return np.any(np.logical_and((roots >= alpha0), (roots <= alpha1)))
+
+
+#%% Plot 
 figw = mlab.figure(1, bgcolor=(0.2, 0.2, 0.2), size=(1000, 1000))
 figw.scene.parallel_projection=True
 figw.scene.z_plus_view()
@@ -75,6 +118,11 @@ else:
 num_mp = len(mpArr)
 for alpha in alphaArr:
     for i, mp in enumerate(mpArr):
+        # Ensure that there is a unique alpha within +/-90° for the parameters
+        assert not first_derivative_has_real_roots(zo, fl, mp), 'F(aplha) not monotonic.'  
+        # Ensure that the condition for real imaging is satisfied
+        assert ((abs(zo)*mp - fl/cosd(alpha)) > 0.0), 'Condition for real image failed.'        
+        
         # coefficients of the general quadratic curve: ax² + bxy + cy² + dx + ey + f = 0
         x = cosd(alpha)
         y = sind(alpha)
