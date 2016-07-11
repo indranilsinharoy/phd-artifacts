@@ -26,7 +26,7 @@ arccosd = lambda x : np.rad2deg(np.arccos(x))
 arctand = lambda x : np.rad2deg(np.arctan(x))
 
 # exploratory/ experimental settings?
-EXP_SETTINGS = False  # if False, then settings for saved system for thesis figure will be used
+EXP_SETTINGS = True  # if False, then settings for saved system for thesis figure will be used
 ZOOM_ON = False
 SHOW_ALPHA_THIN = False
 SAVE_FIGURE = False
@@ -37,7 +37,7 @@ if EXP_SETTINGS:
     zo = -509.0
     de = -5.0
     deDash = -25.0             
-    alphaArr = [-5.0, 20.0]            
+    alphaArr = [-5.0,]# 20.0]            
 else:  # for plot @ thesis / presentations
     f = 24.0                # focal length
     mpArr = [0.25, 0.5, 1.0, 2.0]  # pupil magnification   Should include 0.1??

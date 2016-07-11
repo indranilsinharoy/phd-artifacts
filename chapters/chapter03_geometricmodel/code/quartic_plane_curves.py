@@ -42,7 +42,7 @@ A=0; B=0; C=0; D=0; E=0; F=0; G=0; H=0; I=0; J=0; K=0; L=0; M=0; N=0; P=0;
 #    It has genus zero, with three ordinary double points, all in the real plane. 
 #    Implicit equation: (y² - x²)(x - 1)(2x - 3) = 4(x² + y² - 2x)²
 #    Expanded form: -6x⁴ - 4y⁴ - 6x²y² + 21x³ - 19x² + 11xy² + 3y² = 0
-#A=-6.; B=-4,; D=-6.0; F=21.0; I=11.; J=-19.; K=3.
+#A=-6.; B=-4; D=-6.0; F=21.0; I=11.; J=-19.; K=3.
 
 # 2. Bean curve (http://mathworld.wolfram.com/BeanCurve.html)
 #    The bean curve has genus zero. It has one singularity at the origin, an ordinary triple point.
@@ -61,21 +61,21 @@ A=0; B=0; C=0; D=0; E=0; F=0; G=0; H=0; I=0; J=0; K=0; L=0; M=0; N=0; P=0;
 #    The bicorn has two cusps at (±a,0) and is symmetric about the y-axis
 #    Implicit equation: y²(a² - x²) = (x² + 2ay - a²)²
 #    Expanded form: x⁴ + x²y² + 4ax²y - 2a²x² + 3a²y² - 4a³y + a⁴  
-#a=1.0; A=1; D=1; H=4.0*a; J=-2.0*a**2; K=3.0*a**2; N=-4.0*a**3; P=a**4           
+#a=1.0; A=1; B=1; D=1; H=4.0*a; J=-2.0*a**2; K=3.0*a**2; N=-4.0*a**3; P=a**4; plotExt = (-3, 3, -3, 3, 0, 0)          
 
 # 5. Bow curve (http://mathworld.wolfram.com/Bow.html)
 #    The bow curve has a single triple point at x=0, y=0, and consequently is a rational curve, 
 #    with genus zero.  
 #    Implicit equation: x⁴ = x²y - y³ 
-#A=1; H=-1; G=1;
+#A=1; H=-1; G=1; plotExt = (-2, 2, -2, 2, 0, 0)
 
 # 6. Bullet-nose curve (https://en.wikipedia.org/wiki/Bullet-nose_curve)
 #    Implicit equation: a²y² - b²x² = x²y²
-#a=1.0; b=1.0; D=1; J=b**2; K=-a**2; 
+#a=1.0; b=1.0; D=1; J=b**2; K=-a**2; plotExt = (-2, 2, -2, 2, 0, 0)
 
 # 7. Cardioid curve (https://en.wikipedia.org/wiki/Cardioid)
 #    Implicit equation: (x² + y² + ax)² = a²(x² + y²)
-#a=1.0; A=1; B=1; D=2; F=2*a; I=2*a; K=-a**2;
+a=1.0; A=1; B=1; D=2; F=2*a; I=2*a; K=-a**2;
 
 # 9. Folium or Kepler's folium (http://mathworld.wolfram.com/Folium.html)
 #    Implicit equation: x⁴ + y⁴ + 2x²y² + bx³ + (b-4a)xy² = 0 
@@ -105,7 +105,15 @@ A=0; B=0; C=0; D=0; E=0; F=0; G=0; H=0; I=0; J=0; K=0; L=0; M=0; N=0; P=0;
 
 # x.
 #    Implicit equation: y⁴ + x⁴ = 1
-A=1; B=1; P=-1; plotExt = (-3, 3, -3, 3, 0, 0)
+#A=1; B=1; P=-1; plotExt = (-3, 3, -3, 3, 0, 0)
+
+# x.
+#A=0; B=1; D=1.;J=0.; K=0; M=0; N=-1; plotExt = (-3, 3, -3, 3, 0, 0)
+
+
+# x. 
+# Ax⁴ + By⁴ + Cx³y + Dx²y² + Exy³ + Fx³ + Gy³ + Hx²y + Ixy² + Jx² + Ky² + Lxy + Mx + Ny + P = 0
+#A=1; B=1; D=1.;J=1.; K=1; M=0; N=-1; plotExt = (-3, 3, -3, 3, 0, 0)
 
 
 #%% plot the implicit curve
