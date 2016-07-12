@@ -26,7 +26,7 @@ arccosd = lambda x : np.rad2deg(np.arccos(x))
 arctand = lambda x : np.rad2deg(np.arctan(x))
 
 # exploratory/ experimental settings?
-EXP_SETTINGS = True  # if False, then settings for saved system for thesis figure will be used
+EXP_SETTINGS = False  # if False, then settings for saved system for thesis figure will be used
 ZOOM_ON = False
 SHOW_ALPHA_THIN = False
 SAVE_FIGURE = False
@@ -80,9 +80,9 @@ if EXP_SETTINGS:
                               scale_factor=2., opacity=0.5)
         caxis.actor.property.lighting = False
 else:
-    plotExtents = (-5.5, 5.5, -5.5, 5.5, 0, 0)
+    plotExtents = (-6.2, 6.2, -6.2, 5.7, 0, 0)
     drawOriginAxes(plotExtents, displace=None, colAxes=False, cones=True, 
-                   xaxis=True, yaxis=True, zaxis=False, opacity=0.5, scale_arrow_width=0.95, 
+                   xaxis=True, yaxis=True, zaxis=False, opacity=0.15, scale_arrow_width=0.95, 
                    scale_label=.25, label_color=(0.75, 0.75, 0.75), visible=True, cone_scale_factor=0.4,
                    axis_mono_col=(0.6, 0.6, 0.6), axis_tube_radius=0.01)
 
@@ -131,7 +131,8 @@ for alpha in alphaArr:
     ##TODO!
     # plot the valid point of intersection i.e. (cos(α), sin(α))
     ptsScale = 0.1 if ZOOM_ON else 0.15
-    pcol = (0/255., 70/255, 1) if alpha > 0 else (0, 1, 0.1) 
+    #pcol = (0/255., 70/255, 1) if alpha > 0 else (0, 1, 0.1) 
+    pcol = (40/255., 140/255, 1) if alpha > 0 else (0, 1, 0.1) 
     mlab.points3d([x,], [y,], [0,], scale_factor=ptsScale, color=pcol, mode='sphere', resolution=20)    
     # since magnitude of y (and x) and less then 1, the offset in y is some fraction of 1/y
     mlab.text(x + 0.15, y + np.sign(y)*abs(0.01/y), z=0, 
@@ -181,7 +182,7 @@ if ZOOM_ON:
     cam.parallel_scale = 2   # less is more
     #print(cam.parallel_scale)
 else:
-    cam.parallel_scale = 5.5
+    cam.parallel_scale = 6
     
 if SAVE_FIGURE and not EXP_SETTINGS:
     cdir = os.getcwd()
