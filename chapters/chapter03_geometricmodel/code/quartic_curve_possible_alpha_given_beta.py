@@ -102,7 +102,7 @@ for alpha in alphaArr:
         numr = -y*(mp*(zo - de*x) + f*(1-mp)*x)
         deno = (f - mp*de*y**2)*(mp*x**2 + y**2) + mp*(1 - mp)*de*(y**2)*(x**2)
         tanBeta = numr/deno
-        print('alpha = {}, mp= {}, beta = {}'.format(alpha, mp, arctand(tanBeta)))
+        print(u'\u03B1 = {}, mp= {}, \u03B2 = {}'.format(alpha, mp, arctand(tanBeta)))
         A = 0                          # x⁴ term 
         B = mp*de*tanBeta              # y⁴ term        
         C = 0                          # x³y term  

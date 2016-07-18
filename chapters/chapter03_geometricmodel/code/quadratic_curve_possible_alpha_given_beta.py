@@ -170,8 +170,9 @@ for j, alpha in enumerate(alphaArr):
         else:
             conicType = 'Rectangular hyperbola' if (a + c == 0) else 'Hyperbola'
         
-        print('mp = {:0.5f}, alpha = {:0.2f}, f = {:0.3f} :: {} (e = {:1.5f}, det = {:1.5f})'
-             .format(mp, alpha, fl, conicType, eccentricity, det))
+        print(u'mp = {:0.5f}, \u03B2 = {:0.2f}, \u03B1 = {:0.2f}, f = {:0.3f} :: {} (e = {:1.5f}, det = {:1.5f})'
+             .format(mp, arctand(tanBeta), alpha, fl, conicType, eccentricity, det))
+             
         # plot the implicit curve
         col = (58/255, 154/255, 255/255) if alpha > 0 else (0/255, 167/255, 101/255)
         iopacity = 1.0 if ALGORITHM_STEPS else  1.0 - i/(1.01*num_mp)
@@ -205,14 +206,15 @@ for j, alpha in enumerate(alphaArr):
     N = 3 if j else 5
     opaIncFactor = 0.083 if j else 0.05
     ptsScFactor = 0.01
-    altxtwidth = [[0.0159, 0.021, 0.021, 0.021, 0.023],
-                  [0.0156, 0.0156, 0.021, 0.021, 0.021]]
+    altxtwidth = [[0.01487, 0.021, 0.021, 0.021, 0.029],   # green 
+                  [0.0153, 0.016, 0.021, 0.021, 0.021]]  # blue 
     for aindex in range(N):
         pt = mlab.points3d([cosd(angleStepArr[aindex]),], [sind(angleStepArr[aindex]),], [0,], 
                            scale_factor=ptsScale*1.5 + aindex*ptsScFactor, color=(1, 1, 1), mode='sphere', resolution=20)
         pt.actor.property.opacity = 0.08 + aindex*opaIncFactor
-        mlab.text(cosd(angleStepArr[aindex]) + 0.05, sind(angleStepArr[aindex]) - 0.001, z=0, 
-          text='{0:{width}}'.format(aindex*stepSize[j], width=3), width=altxtwidth[j][aindex], color=(0.9, 0.9, 0.9))   # aindex*stepSize[j]
+        mlab.text(cosd(angleStepArr[aindex]) + 0.05, sind(angleStepArr[aindex]) - 0.0015, z=0, 
+                  text='i = {0:{width}},  a = {1:0.2f}'.format(aindex*stepSize[j], angleStepArr[aindex], width=3), 
+                  width=(altxtwidth[j][aindex] + 0.1), color=(0.8, 0.81, 0.83))   # aindex*stepSize[j]
     
     #%% plot the valid point of intersection i.e. (cos(α), sin(α))
     
@@ -235,7 +237,7 @@ for j, alpha in enumerate(alphaArr):
         mlab.text(x + 0.15, y + np.sign(y)*abs(0.03/y), z=0, 
                   text='{:2.3f}'.format(alpha).zfill(4), width=0.06, color=(1, 1, 0))
     
-    # 
+    # %% SHOW_ALPHA_THIN 
     if SHOW_ALPHA_THIN:
         alphaThin = -arcsind(fl*tanBeta/zo)
         mlab.points3d([cosd(alphaThin),], [sind(alphaThin),], [0,], 
