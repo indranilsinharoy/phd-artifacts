@@ -1,0 +1,2 @@
+C:\GIT_REPOSITORIES\phd-artifacts\chapters\chapter05_extending_imaging_volume\experiment\images\registered_stack_overlapped_fm 
+λ "C:\Program Files\ImageMagick-6.6.8-Q16\convert" -delay 90 -loop 0 *.png animated.gif
