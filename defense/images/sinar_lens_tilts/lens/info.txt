@@ -1,0 +1,2 @@
+C:\GIT_REPOSITORIES\phd-artifacts\defense\images\sinar_lens_tilts\sensor (master)
+λ "C:\Program Files\ImageMagick-6.6.8-Q16\convert" -delay 60 -loop 0 *.jpg animated.gif
